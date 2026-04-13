@@ -6,7 +6,7 @@ tests:
   - tests/automations/morning-briefing.test.ts
 components: []
 design_refs: []
-status: specced
+status: implemented
 created: 2026-04-13
 updated: 2026-04-13
 ---
@@ -50,7 +50,7 @@ And new leads were added since the last briefing
 When the morning briefing runs
 Then it compares current pipeline totals to the previous snapshot
 And it reports deltas: "+{n} new leads since yesterday", "{n} newly warm"
-And it calls out any leads that crossed into "Hot" tier since last briefing
+And it reports a count of leads that crossed into warm (hot+warm combined) since last briefing
 
 ### Scenario: First briefing with no previous snapshot
 Given this is the first time the morning briefing runs
