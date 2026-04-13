@@ -10,6 +10,22 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Lead Quality Feedback Loop** — the most hard-won lessons from this session:
+
+1. **Sequential-then-parallel fetch for AuthError gate** (api.md): Fetch the auth-gating call first (e.g., `getCampaigns`), then run remaining independent calls in `Promise.all`. Ensures `AuthError` aborts before any downstream work starts. Discovered when `Promise.all([campaigns, leads, intentCounts])` failed the "does not call searchLeads" test.
+
+2. **`arrayContaining` for mixed LLM+deterministic arrays** (testing.md): When one report field is populated by both a deterministic step (field importance) and an LLM step (signal analysis), `toHaveLength(n)` assertions break because total count varies. Use `expect.arrayContaining([expect.objectContaining({...})])` to verify specific entries without constraining total count.
+
+3. **Module-level ID counter for fixture uniqueness** (testing.md): 13 describe blocks with hardcoded lead IDs cause silent test coupling via Set-based de-duplication. Use a module-level `let _leadId = 0` incrementor in the `makeLead()` helper — unique IDs across the whole test file.
+
+4. **Config data-quantity gate vs. fixture size** (testing.md): `minLeads: 30` triggers early-return when a test has only 25 leads — test passes vacuously on empty arrays. Fix: either provide enough fixture data or pass `{ minLeads: 25 }` to match. Applies to any data-quantity gate.
+
+5. **Normalize union accumulator arrays to eliminate always-true guards** (general.md): An `Array<TypeA | TypeB>` accumulator where all elements are `TypeB` forces always-true `'field' in item` guards downstream. Re-declare as `Array<TypeB>` upfront; guards and noise disappear.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **ICP Refinement from Results** — the most hard-won lessons from this session:
 
 1. **`intentType: 'replied'` as reply-status proxy** (api.md): No per-lead reply-status field exists in `LeadFilters`. Use `intentType: 'replied'` as a proxy filter + Set-diff against all leads to derive the non-replied segment. Run both `searchLeads` calls in `Promise.all`.

@@ -167,6 +167,40 @@ Add dependency-section verification to the post-build drift check: read each lis
 
 ---
 
+## Normalize union arrays to concrete types before iteration to remove always-true guards
+
+When an array accumulates elements of a union type but all elements at that point are semantically one concrete type, re-declare the array with the concrete type upfront. This eliminates downstream type guards that are always true at runtime but required by TypeScript:
+
+```ts
+// Before — union type forces always-true runtime guards downstream
+const allLowConf: Array<FeedbackRecommendation | { recommendation: string; dataPoint: string }> = [];
+// ...later in buildReportText...
+if ('dataPoint' in item) { ... }  // always true — TypeScript requires it but humans see noise
+
+// After — normalize to concrete type at declaration; guards disappear
+const allLowConf: Array<{ recommendation: string; dataPoint: string }> = [];
+// ...later...
+allLowConf.forEach((item) => { /* item.recommendation and item.dataPoint always accessible */ });
+```
+
+The root cause is usually an accumulator initialized before its final type is known. When you later realize all branches write the same concrete type, fix the declaration rather than adding runtime guards. Downstream code becomes simpler and the type system stops requiring logic that never runs.
+
+---
+
+## `void unusedResult` for spec-required fetches not yet used in logic
+
+When a spec requires a fetch (for future use or completeness) but the current implementation doesn't consume the result, assign it to `void` to explicitly suppress lint warnings while documenting the intentional fetch:
+
+```ts
+// Fetched per spec; not yet used in correlation logic — suppress lint
+const [leadsResult, intentCounts] = await Promise.all([fetchAllLeads(client), client.getIntentTypeCounts()]);
+void intentCounts; // spec requires this fetch; unused until intent-type correlation is expanded
+```
+
+This is clearer than suppressing with a `// eslint-disable` comment or deleting the call — `void` signals "I know this is unused right now" without removing the fetch. When the logic is expanded to use the result, delete the `void` line.
+
+---
+
 ## `status` field value and display format can intentionally differ — document both
 
 A data model's `status` field (machine-readable, for serialization and logging) can legitimately differ from the display string shown to the user. Example:

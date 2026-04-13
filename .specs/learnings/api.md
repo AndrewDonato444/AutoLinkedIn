@@ -276,6 +276,27 @@ This also makes the directory listing immediately human-readable and enables glo
 
 ---
 
+## Sequential-then-parallel fetch for AuthError propagation gate
+
+When a function fetches from multiple endpoints and one of them is a natural auth gate (e.g., `getCampaigns` is the first meaningful call), fetch it sequentially first, then run the remaining independent fetches in parallel:
+
+```ts
+// Sequential gate — AuthError propagates before other fetches start
+const campaigns = await client.getCampaigns();
+
+// Parallel fetches — only run if the gate passed
+const [leadsResult, intentCounts] = await Promise.all([
+  fetchAllLeads(client),
+  client.getIntentTypeCounts(),
+]);
+```
+
+**Why not `Promise.all([getCampaigns, fetchAllLeads, getIntentTypeCounts])`?** With all three in parallel, `getCampaigns` can fail with `AuthError` but the other two calls may have already started — partial work against an unauthorized API. The sequential-then-parallel split ensures the auth check completes before any downstream work begins, matching the spec's "AuthError → does not produce a partial report" invariant.
+
+Verify with a test: mock `getCampaigns` to throw `AuthError`, assert `searchLeads` was never called.
+
+---
+
 ## `intentType: 'replied'` as reply-status proxy + set-diff for segmentation
 
 When an API's filter supports `intentType` as a string but has no per-lead reply-status field, use `intentType: 'replied'` as a proxy filter. Derive the complementary segment (non-replied) by fetching all leads and subtracting the replied IDs via a `Set`:
