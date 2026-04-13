@@ -261,3 +261,28 @@ Avoids repeating `.mockRejectedValue(error)` inline at every error test call sit
 ## Choose test parameter values that can't mask bugs
 
 A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether or not duplicates consume limit slots — because 4 leads processed = 4 leads processed either way. Choose values where the behavior under test produces a *different observable result* than the alternative. E.g., use `limit=3` with 4 leads where 1 is a duplicate: if duplicates consume slots, 2 leads get created; if they don't, 3 do.
+
+---
+
+## Real temp dirs via `os.mkdtempSync` for filesystem injection tests
+
+When a function accepts a `_snapshotDir` (or similar path injection point), test it with a real temp directory rather than mocking `fs`. This avoids the complexity of mocking `fs.readdirSync`, `fs.readFileSync`, `fs.writeFileSync`, etc., and tests actual filesystem behavior:
+
+```ts
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
+
+const tmpDir = os.mkdtempSync(path.join(os.tmpdir(), 'test-snapshots-'));
+// use tmpDir as _snapshotDir in the call under test
+// optionally clean up: fs.rmSync(tmpDir, { recursive: true })
+```
+
+When `_snapshotDir` points to a fresh (empty) temp dir, `readdirSync` returns `[]` — which correctly triggers "no previous snapshot" paths without any explicit setup. To simulate "a previous week exists", write a fixture file into the tmpDir before calling the function:
+
+```ts
+const yesterdayPath = path.join(tmpDir, '2026-04-06.json');
+fs.writeFileSync(yesterdayPath, JSON.stringify(previousSnapshot));
+```
+
+This pattern pairs with `Pick<>` client injection (also documented here) — both use the `_` prefix convention to signal "internal/test-only" parameters.

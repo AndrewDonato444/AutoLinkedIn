@@ -263,6 +263,19 @@ This keeps absent optional fields out of the object entirely (some APIs treat `{
 
 ---
 
+## ISO date filenames give free lexicographic-chronological sort
+
+When storing time-series data as separate files (snapshots, daily reports, audit logs), name files with ISO 8601 dates (`YYYY-MM-DD.json`). Alphabetical order == chronological order, so finding the most recent file requires no date parsing:
+
+```ts
+const files = fs.readdirSync(snapshotDir).filter(f => f.endsWith('.json')).sort();
+const mostRecent = files.reverse()[0]; // last alphabetically = most recent date
+```
+
+This also makes the directory listing immediately human-readable and enables glob patterns like `2026-04-*.json` for month filtering. Avoid epoch timestamps or `DD-MM-YYYY` formats — they break naive sort.
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:
