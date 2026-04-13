@@ -189,3 +189,46 @@ Consistent with pipeline overview report:
 - **Cold**: 0-19 (excluded by default threshold)
 
 ## Learnings
+
+### `Record<string, unknown>` for optional filter accumulation
+
+Build the API filter object by conditionally assigning keys only when they're present, using a `Record<string, unknown>` base type:
+
+```ts
+const apiFilters: Record<string, unknown> = { scoreFrom: minScore, scoreTo: maxScore };
+if (filters?.dateFrom) apiFilters.dateFrom = filters.dateFrom;
+if (filters?.dateTo) apiFilters.dateTo = filters.dateTo;
+if (filters?.intentType) apiFilters.intentType = filters.intentType;
+```
+
+This avoids having `undefined` values in the object (which some APIs treat differently from absent keys) and keeps the intent explicit. Cast to the final API filter type at the call site.
+
+### Env-dependent defaults: use floor assertions not exact values
+
+When a function reads a numeric config from `process.env`, tests can't know whether `.env.local` sets it to 50 or 60. Use `toBeGreaterThanOrEqual(minDefault)` instead of `toBe(exactValue)` to stay green across environments:
+
+```ts
+// Fragile — breaks when .env.local overrides MIN_INTENT_SCORE
+expect(result.filters.scoreFrom).toBe(50);
+
+// Resilient — passes whether env value is 50, 60, or any valid override
+expect(result.filters.scoreFrom).toBeGreaterThanOrEqual(50);
+```
+
+Add a comment explaining the two possible values so future readers understand the range assertion isn't laziness.
+
+### Separate `makeMockClientThrowing` factory for error-path tests
+
+A distinct factory for error-path client mocks keeps tests readable — avoids repeating `.mockRejectedValue(error)` inline across every error test:
+
+```ts
+function makeMockClientThrowing(error: Error): MockClient {
+  return { searchLeads: vi.fn().mockRejectedValue(error) };
+}
+
+// Test:
+const client = makeMockClientThrowing(new AuthError());
+await expect(buildWarmLeadList(undefined, { _client: client })).rejects.toThrow(AuthError);
+```
+
+Pairs naturally with `makeMockClient(pages[])` for the happy path.

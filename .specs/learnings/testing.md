@@ -228,6 +228,36 @@ Use `Pick<>` on the function parameter type (not just on the mock type) whenever
 
 ---
 
+## Env-dependent defaults: use floor assertions not exact values
+
+When a function reads a numeric config from `process.env` (e.g., `MIN_INTENT_SCORE`), tests can't know whether `.env.local` overrides the default or not. A `toBe(50)` assertion breaks whenever the env file sets it to 60. Use a floor assertion instead:
+
+```ts
+// Fragile — breaks when .env.local sets MIN_INTENT_SCORE=60
+expect(result.filters.scoreFrom).toBe(50);
+
+// Resilient — passes for any valid override >= 50
+expect(callArgs.scoreFrom).toBeGreaterThanOrEqual(50);
+```
+
+Add an inline comment explaining the two possible values so future readers understand the range assertion isn't laziness. Apply this to any config value that can legitimately differ between environments.
+
+---
+
+## Separate `makeMockClientThrowing` factory for error-path tests
+
+Alongside the standard `makeMockClient(pages)` factory, add a distinct factory for error-path tests:
+
+```ts
+function makeMockClientThrowing(error: Error): MockClient {
+  return { searchLeads: vi.fn().mockRejectedValue(error) };
+}
+```
+
+Avoids repeating `.mockRejectedValue(error)` inline at every error test call site. The naming convention makes it immediately obvious which factory is for the failure path vs. the success path.
+
+---
+
 ## Choose test parameter values that can't mask bugs
 
 A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether or not duplicates consume limit slots — because 4 leads processed = 4 leads processed either way. Choose values where the behavior under test produces a *different observable result* than the alternative. E.g., use `limit=3` with 4 leads where 1 is a duplicate: if duplicates consume slots, 2 leads get created; if they don't, 3 do.

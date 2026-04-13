@@ -248,6 +248,21 @@ if (score === undefined || score === null) return 'unscored';
 
 ---
 
+## `Record<string, unknown>` for optional filter accumulation
+
+When building an API filter object with optional keys, use a `Record<string, unknown>` base and conditionally assign keys only when they're defined:
+
+```ts
+const apiFilters: Record<string, unknown> = { scoreFrom: minScore, scoreTo: maxScore };
+if (filters?.dateFrom) apiFilters.dateFrom = filters.dateFrom;
+if (filters?.dateTo) apiFilters.dateTo = filters.dateTo;
+if (filters?.intentType) apiFilters.intentType = filters.intentType;
+```
+
+This keeps absent optional fields out of the object entirely (some APIs treat `{ intentType: undefined }` differently from `{}`). Cast to the typed filter at the call site with `as Parameters<typeof client.searchLeads>[0]`. Prefer this over a typed interface with all-optional fields, which would still require explicit `undefined` removal before the call.
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:
