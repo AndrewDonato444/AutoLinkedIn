@@ -22,6 +22,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | implemented |
 | core-pipeline | [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
 | intelligence | [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md) | `src/automations/pipeline-overview-report.ts` | tests/automations/pipeline-overview-report.test.ts | - | implemented |
+| intelligence-layer | [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md) | `src/automations/campaign-performance-analytics.ts` | tests/automations/campaign-performance-analytics.test.ts | - | implemented |
 
 ---
 
@@ -32,8 +33,8 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | stub | 0 |
 | specced | 0 |
 | tested | 0 |
-| implemented | 4 |
-| **Total** | **4** |
+| implemented | 5 |
+| **Total** | **5** |
 
 ---
 
@@ -57,6 +58,7 @@ _None_
 - [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md)
 - [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md)
 - [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md)
+- [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md)
 
 ---
 
