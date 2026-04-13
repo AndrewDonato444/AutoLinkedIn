@@ -358,3 +358,54 @@ function daysAgoIso(n: number): string {
 ```
 
 Pass `daysAgoIso(4)` for a campaign that stalled 4 days ago, `daysAgoIso(1)` for one still active. This pattern applies to any test that reasons about durations relative to "now".
+
+---
+
+## Module-level ID counter for unique fixture IDs across test suites
+
+When many describe blocks each create lead fixtures, hardcoded IDs (e.g., `id: 'lead-1'`) collide across describe blocks — one test's fixture leaks into another's Set-based de-duplication. Use a module-level incrementor to generate unique IDs:
+
+```ts
+let _leadId = 0;
+function makeLead(overrides: Partial<Lead> = {}): Lead {
+  return { id: `lead-${++_leadId}`, firstName: 'Test', ... , ...overrides };
+}
+```
+
+The incrementor persists across describe blocks (module scope), so every `makeLead()` call returns a unique ID regardless of test order. Apply this whenever the function under test uses a `Set<id>` or compares by ID — collisions produce silent false positives.
+
+---
+
+## `arrayContaining` when LLM + deterministic signals populate the same array
+
+When a report field is populated by both deterministic computation (e.g., field importance entries) AND LLM delegation (e.g., signal text analysis), `toHaveLength(n)` assertions break because the total count depends on which path ran. Use `expect.arrayContaining([...])` to verify the specific entries you care about without constraining the total length:
+
+```ts
+// Fragile — breaks if field importance adds more entries than expected
+expect(report.signalEffectiveness.effective).toHaveLength(2);
+
+// Resilient — verifies LLM-produced entries without counting deterministic additions
+expect(report.signalEffectiveness.effective).toEqual(
+  expect.arrayContaining([
+    expect.objectContaining({ signal: 'Recently raised Series A' }),
+  ])
+);
+```
+
+Applies whenever the same array is written to by both a deterministic step and an LLM-delegated step within the same function. If you need to test the deterministic entries specifically, assert on their identifiable fields (signal name, category) rather than position or total count.
+
+---
+
+## Config data-quantity gate: fixture size must meet or exceed the threshold
+
+When a function has a data-quantity gate (e.g., `if (allLeads.length < minLeads) return earlyReport`), a test that provides fewer leads than the default threshold will silently hit the early-return path — testing the wrong code path. Either provide enough fixture leads to exceed the threshold, or pass the threshold as an option to match your fixture:
+
+```ts
+// Wrong — default minLeads=30 triggers early return, test doesn't reach the intended path
+await analyzeLeadQuality({ _client: clientWith25Leads });
+
+// Right — pass minLeads to match the fixture
+await analyzeLeadQuality({ _client: clientWith25Leads, minLeads: 25 });
+```
+
+Symptom: tests that should exercise analysis logic pass when they should fail (the early-return report has empty arrays, so assertions like `toHaveLength(0)` pass vacuously). When debugging, check the fixture lead count against all quantity thresholds in the function.

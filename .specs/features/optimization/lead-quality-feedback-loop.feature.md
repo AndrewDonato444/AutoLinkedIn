@@ -392,4 +392,26 @@ Splitting campaigns into "first half" and "second half" with fewer than 6 gives 
 
 ## Learnings
 
-(To be populated after implementation via /compound)
+### Sequential-then-parallel fetch for AuthError gate
+
+Fetching `getCampaigns` sequentially first (not inside `Promise.all`) ensures `AuthError` propagates before `searchLeads` or `getIntentTypeCounts` are called. The test "does not call searchLeads when getCampaigns throws AuthError" failed when all three were in `Promise.all` — fixed by making campaigns the sequential gate, then running the remaining two in parallel. See `api.md` learnings for the full pattern.
+
+### `arrayContaining` when field importance + LLM signals share the same array
+
+`signalEffectiveness.effective` is populated by both the LLM (`_analyzePatterns`) AND deterministic field importance entries. Tests asserting `toHaveLength(n)` failed because field importance added entries the count didn't anticipate. Switch to `expect.arrayContaining([expect.objectContaining({...})])` — verify the entries you care about without constraining the total. See `testing.md` for the general pattern.
+
+### Module-level lead counter for unique IDs across 13 describe blocks
+
+With 61 tests across 13 describe blocks, hardcoded lead IDs collide and cause silent test coupling (Set-based de-duplication treats leads from different tests as the same). Use a module-level `let _leadId = 0` incrementor in `makeLead()`. See `testing.md`.
+
+### Threshold must match fixture size for data-quantity gates
+
+Default `minLeads: 30` silently triggered early-return for a test that only had 25 leads, making the test pass vacuously. Fixed by passing `{ minLeads: 25 }` to match the fixture. See `testing.md` for the general pattern.
+
+### Normalize union accumulator types before iteration
+
+`allLowConf` was typed as `Array<FeedbackRecommendation | { recommendation: string; dataPoint: string }>` — all elements were actually the concrete type, but TypeScript required always-true `'dataPoint' in item` guards. Fixed by declaring `allLowConf: Array<{ recommendation: string; dataPoint: string }>` upfront and removing the guards. See `general.md`.
+
+### `void intentCounts` for spec-required but currently unused fetches
+
+`getIntentTypeCounts()` is fetched per spec but not consumed in the current correlation logic. Assigned to `void intentCounts` to suppress lint without removing the call — signals the intentional choice and makes it easy to remove when the logic is expanded.
