@@ -4,8 +4,25 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Files
 
-- [Testing Patterns](testing.md) — Vitest setup, fake-timer gotchas, AbortError mocking, spy on console, function injection, Pick<> for mocks
-- [API & Data Patterns](api.md) — HTTP client design, two-tier 404 errors, rate limiting, env config, retry backoff, SDK type casting, LLM-delegated ranking
+- [Testing Patterns](testing.md) — Vitest setup, fake-timer gotchas, AbortError mocking, spy on console, function injection, Pick<> for mocks, real temp dirs for filesystem injection
+- [API & Data Patterns](api.md) — HTTP client design, two-tier 404 errors, rate limiting, env config, retry backoff, SDK type casting, LLM-delegated ranking, ISO date filenames
+- [General Patterns](general.md) — Thin orchestration layers, named threshold constants, date math edge cases, spec output template drift
+
+## Recent Learnings (2026-04-13)
+
+**Weekly Performance Report** — the most hard-won lessons from this session:
+
+1. **Real temp dirs for filesystem injection tests** (testing.md): Use `os.mkdtempSync` instead of mocking `fs`. An empty tmpdir correctly triggers "no previous snapshot" paths; write fixture files into it to simulate "previous week exists". Pairs with `_snapshotDir` injection using the same `_` prefix convention as `_client`.
+
+2. **ISO date filenames = free chronological sort** (api.md): `YYYY-MM-DD.json` files sort alphabetically in chronological order. `files.sort().reverse()[0]` gives the most recent — no date parsing needed.
+
+3. **Named constants for ALL thresholds in analytics code** (general.md): Extract every magic number (reply rate floors, dominance factors, stability cutoffs, display caps) to named constants at the top of the file. When the same value appears in two functions, naming it ensures they stay in sync.
+
+4. **"Next Monday" guard: if today is Monday, add 7 not 0** (general.md): `(8 - day) % 7` gives 0 when `day === 1`. Guard with `day === 1 ? 7 : (8 - day) % 7` to avoid "next report: today" on Monday runs.
+
+5. **Thin orchestration over existing analytics** (general.md): Delegate to `analyzeCampaignPerformance()` rather than reimplementing. The value of the weekly report layer is scheduling + WoW comparison + recommendations, not re-doing metrics math.
+
+---
 
 ## Recent Learnings (2026-04-13)
 
