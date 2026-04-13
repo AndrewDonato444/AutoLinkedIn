@@ -50,6 +50,7 @@ export interface WarmLeadListResult {
 
 const DEFAULT_MIN_SCORE = 50;
 const DEFAULT_MAX_SCORE = 100;
+const HOT_TIER_THRESHOLD = 80;
 const FETCH_PAGE_SIZE = 250;
 
 type WarmLeadClient = Pick<GojiBerryClient, 'searchLeads'>;
@@ -64,7 +65,7 @@ function getDefaultMinScore(): number {
 }
 
 function classifyTier(score: number): 'hot' | 'warm' {
-  return score >= 80 ? 'hot' : 'warm';
+  return score >= HOT_TIER_THRESHOLD ? 'hot' : 'warm';
 }
 
 function buildReasonForWarmth(score: number, signals: string[]): string {
@@ -114,6 +115,14 @@ async function fetchAllWarmLeads(
   return allLeads;
 }
 
+function formatLeadRow(lead: WarmLead, index: number): string[] {
+  return [
+    `  ${index + 1}. ${lead.firstName} ${lead.lastName} (${lead.company}) — Score: ${lead.fitScore}`,
+    `     ${lead.jobTitle} | ${lead.intentType}`,
+    `     Why warm: ${lead.reasonForWarmth}`,
+  ];
+}
+
 function buildReportText(
   leads: WarmLead[],
   filters: WarmLeadListResult['filters'],
@@ -141,22 +150,14 @@ function buildReportText(
   if (byTier.hot.length > 0) {
     lines.push('');
     lines.push(`--- Hot (80-100) — ${byTier.hot.length} leads ---`);
-    byTier.hot.forEach((lead, i) => {
-      lines.push(`  ${i + 1}. ${lead.firstName} ${lead.lastName} (${lead.company}) — Score: ${lead.fitScore}`);
-      lines.push(`     ${lead.jobTitle} | ${lead.intentType}`);
-      lines.push(`     Why warm: ${lead.reasonForWarmth}`);
-    });
+    byTier.hot.forEach((lead, i) => lines.push(...formatLeadRow(lead, i)));
   }
 
   if (byTier.warm.length > 0) {
     lines.push('');
     lines.push(`--- Warm (50-79) — ${byTier.warm.length} leads ---`);
     const offset = byTier.hot.length;
-    byTier.warm.forEach((lead, i) => {
-      lines.push(`  ${offset + i + 1}. ${lead.firstName} ${lead.lastName} (${lead.company}) — Score: ${lead.fitScore}`);
-      lines.push(`     ${lead.jobTitle} | ${lead.intentType}`);
-      lines.push(`     Why warm: ${lead.reasonForWarmth}`);
-    });
+    byTier.warm.forEach((lead, i) => lines.push(...formatLeadRow(lead, offset + i)));
   }
 
   lines.push('');
