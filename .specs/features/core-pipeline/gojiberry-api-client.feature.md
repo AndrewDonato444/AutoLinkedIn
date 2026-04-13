@@ -32,7 +32,7 @@ And all subsequent requests include `Authorization: Bearer {token}` header
 ### Scenario: Reject startup when API key is missing
 Given `.env.local` does not contain `GOJIBERRY_API_KEY`
 When the API client initializes
-Then it exits with a clear error: "Missing GOJIBERRY_API_KEY in .env.local — grab your API key from GojiBerry settings"
+Then it throws a `ConfigError` with message: "Missing GOJIBERRY_API_KEY in .env.local — grab your API key from GojiBerry settings"
 And no API requests are made
 
 ### Scenario: Verify connection with health check
@@ -139,7 +139,6 @@ Given the API client is authenticated
 When the automation processes a batch of 50 leads (creating + enriching = ~150 API calls)
 Then the client paces requests to stay under 100 req/min
 And processes all leads without hitting rate limit errors
-And logs progress: "Processing lead {n}/{total}..."
 
 ### Scenario: Handle auth failure
 Given the API client has an invalid or expired bearer token
@@ -200,7 +199,7 @@ src/api/
 ```typescript
 class GojiBerryClient {
   // Setup
-  constructor(config?: { apiKey?: string; baseUrl?: string })
+  constructor(config?: { apiKey?: string; baseUrl?: string; rateLimit?: number; timeoutMs?: number })
   healthCheck(): Promise<boolean>
 
   // Leads (Contacts)
