@@ -18,7 +18,8 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 
 | Domain | Feature | Source | Tests | Components | Status |
 |--------|---------|--------|-------|------------|--------|
-| automation | [Morning Briefing](.specs/features/automation/morning-briefing.feature.md) | `src/automations/morning-briefing.ts` | tests/automations/morning-briefing.test.ts | - | specced |
+| automation | [Campaign Health Monitor](.specs/features/automation/campaign-health-monitor.feature.md) | `src/automations/campaign-health-monitor.ts` | tests/automations/campaign-health-monitor.test.ts | - | implemented |
+| automation | [Morning Briefing](.specs/features/automation/morning-briefing.feature.md) | `src/automations/morning-briefing.ts` | tests/automations/morning-briefing.test.ts | - | implemented |
 | automation | [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md) | `src/automations/weekly-performance-report.ts` | tests/automations/weekly-performance-report.test.ts | - | implemented |
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
 | core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | implemented |
@@ -35,10 +36,10 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Status | Count |
 |--------|-------|
 | stub | 0 |
-| specced | 2 |
+| specced | 1 |
 | tested | 0 |
-| implemented | 7 |
-| **Total** | **9** |
+| implemented | 9 |
+| **Total** | **10** |
 
 ---
 
@@ -50,7 +51,6 @@ _None_
 
 ### Specced
 
-- [Morning Briefing](.specs/features/automation/morning-briefing.feature.md)
 - [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
 
 ### Tested
@@ -59,6 +59,8 @@ _None_
 
 ### Implemented
 
+- [Campaign Health Monitor](.specs/features/automation/campaign-health-monitor.feature.md)
+- [Morning Briefing](.specs/features/automation/morning-briefing.feature.md)
 - [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md)
 - [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md)
 - [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md)
