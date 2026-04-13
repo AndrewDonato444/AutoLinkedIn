@@ -120,6 +120,49 @@ Extract `MAX_RETRIES` and `RETRY_BASE_DELAY_MS` as private static class constant
 
 ---
 
+## Guard env var number parsing against empty string
+
+`Number("")` returns `0`, not `NaN`. An env var set to an empty string (`DAILY_LEAD_SCAN_LIMIT=""`) silently produces 0 if you parse directly:
+
+```ts
+// WRONG — "" → Number("") = 0, which fails the > 0 guard and may fall through silently
+const limit = Number(process.env.DAILY_LEAD_SCAN_LIMIT) || DEFAULT_LIMIT; // 0 || 50 = 50 ✓ (accidentally works here)
+
+// RIGHT — coerce the empty string to the default BEFORE calling Number()
+const rawLimit = Number(process.env.DAILY_LEAD_SCAN_LIMIT || DEFAULT_LIMIT);
+const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : DEFAULT_LIMIT;
+```
+
+Always coerce falsy (empty string, undefined) to a known default before calling `Number()` on user-supplied env vars.
+
+---
+
+## `as any` for unreleased SDK tool types, with inline comment
+
+When using a tool type that exists in the API but not yet in the SDK's TypeScript definitions, cast to `any` with an explanatory comment rather than contorting the types:
+
+```ts
+tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
+// web_search_20250305 is not yet in the SDK's ToolUnion types — cast required
+```
+
+This is preferable to `as unknown as ToolDefinition[]` gymnastics. Remove the cast when the SDK is updated.
+
+---
+
+## Delegate ranking to the LLM prompt rather than implementing it in code
+
+When building a pipeline that needs to rank results by a semantic criterion (ICP fit, relevance, priority), instruct the model to return results pre-ranked instead of implementing a scoring function:
+
+```
+// In the prompt:
+"Find as many real matching people as you can. Rank them from best ICP fit to weakest."
+```
+
+Then just `slice(0, limit)` the array. This is simpler, produces better results (the LLM understands the ICP semantically), and eliminates a scoring algorithm to test and maintain. The spec should say "ranking delegated to web search" not "ranked by the automation."
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:
