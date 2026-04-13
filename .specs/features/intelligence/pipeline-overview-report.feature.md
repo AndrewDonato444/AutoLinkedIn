@@ -71,6 +71,13 @@ Given the GojiBerry API key is invalid
 When the pipeline overview report is generated
 Then the report generation fails with an authentication error
 
+### Scenario: Lists data is included in the report
+Given the GojiBerry API is reachable
+And the account has lists with contacts assigned to them
+When the pipeline overview report is generated
+Then the report includes the total number of lists
+And the report includes the total number of leads across all lists
+
 ## Data Sources
 
 The report aggregates data from these GojiBerry API endpoints:
@@ -127,7 +134,7 @@ Key rules:
 - Always mention the top intent type (or "no intent data" if empty)
 - Always include campaign count and status
 - Include reply rate if any messages have been sent (replied / sent * 100)
-- Keep it to 2-3 sentences maximum
+- 2 sentences minimum, 4 sentences maximum (reply rate adds a 4th when applicable)
 
 ## Function Signature
 
