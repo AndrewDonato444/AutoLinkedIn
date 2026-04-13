@@ -52,6 +52,11 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+function avgOf(items: CampaignMetrics[], key: keyof CampaignMetrics): number {
+  if (items.length === 0) return 0;
+  return (items.reduce((s, c) => s + (c[key] as number), 0)) / items.length;
+}
+
 function computeTrend(
   completed: CampaignMetrics[],
 ): 'improving' | 'declining' | 'stable' | 'insufficient_data' {
@@ -155,8 +160,8 @@ function buildReportText(
   if (trend === 'insufficient_data') {
     lines.push('Reply rate trend: insufficient data (need 2+ completed campaigns)');
   } else {
-    const latest = completedCampaigns.filter((c) => c.sent > 0).slice(-1)[0];
     const completedWithSends = completedCampaigns.filter((c) => c.sent > 0);
+    const latest = completedWithSends[completedWithSends.length - 1];
     const avg =
       completedWithSends.reduce((s, c) => s + c.replyRate, 0) / completedWithSends.length;
     lines.push(
@@ -210,15 +215,9 @@ export async function analyzeCampaignPerformance(options?: {
   // Overall averages (exclude zero-send campaigns)
   const totalSent = withSends.reduce((s, c) => s + c.sent, 0);
   const overallAverages = {
-    replyRate: withSends.length > 0
-      ? withSends.reduce((s, c) => s + c.replyRate, 0) / withSends.length
-      : 0,
-    openRate: withSends.length > 0
-      ? withSends.reduce((s, c) => s + c.openRate, 0) / withSends.length
-      : 0,
-    conversionRate: withSends.length > 0
-      ? withSends.reduce((s, c) => s + c.conversionRate, 0) / withSends.length
-      : 0,
+    replyRate: avgOf(withSends, 'replyRate'),
+    openRate: avgOf(withSends, 'openRate'),
+    conversionRate: avgOf(withSends, 'conversionRate'),
     totalSent,
   };
 
