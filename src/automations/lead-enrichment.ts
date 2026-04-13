@@ -14,6 +14,22 @@ const ANTHROPIC_MODEL = 'claude-opus-4-6';
 const WEB_RESEARCH_MAX_TOKENS = 8096;
 const SUMMARY_SEPARATOR_WIDTH = 80;
 
+function buildLeadDescription(lead: Lead): string {
+  return [
+    `${lead.firstName} ${lead.lastName}`,
+    lead.jobTitle ? `(${lead.jobTitle})` : '',
+    lead.company ? `at ${lead.company}` : '',
+    lead.profileUrl ? `— ${lead.profileUrl}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function resolvePositiveNumber(optionValue: number | undefined, envKey: string, defaultValue: number): number {
+  const raw = optionValue ?? Number(process.env[envKey] ?? defaultValue);
+  return Number.isFinite(raw) && raw > 0 ? raw : defaultValue;
+}
+
 type EnrichmentClient = Pick<GojiBerryClient, 'searchLeads' | 'getLead' | 'updateLead'>;
 
 export interface EnrichLeadsOptions {
@@ -41,14 +57,7 @@ export async function defaultWebResearch(
 
   const anthropic = new Anthropic({ apiKey });
 
-  const leadDescription = [
-    `${lead.firstName} ${lead.lastName}`,
-    lead.jobTitle ? `(${lead.jobTitle})` : '',
-    lead.company ? `at ${lead.company}` : '',
-    lead.profileUrl ? `— ${lead.profileUrl}` : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const leadDescription = buildLeadDescription(lead);
 
   const response = await anthropic.messages.create({
     model: ANTHROPIC_MODEL,
@@ -175,15 +184,8 @@ export async function enrichLeads(options: EnrichLeadsOptions = {}): Promise<Enr
     );
   }
 
-  const rawMinScore =
-    options.minIntentScore ?? Number(process.env.MIN_INTENT_SCORE ?? DEFAULT_MIN_INTENT_SCORE);
-  const minIntentScore =
-    Number.isFinite(rawMinScore) && rawMinScore > 0 ? rawMinScore : DEFAULT_MIN_INTENT_SCORE;
-
-  const rawBatchSize =
-    options.batchSize ?? Number(process.env.ENRICHMENT_BATCH_SIZE ?? DEFAULT_BATCH_SIZE);
-  const batchSize =
-    Number.isFinite(rawBatchSize) && rawBatchSize > 0 ? rawBatchSize : DEFAULT_BATCH_SIZE;
+  const minIntentScore = resolvePositiveNumber(options.minIntentScore, 'MIN_INTENT_SCORE', DEFAULT_MIN_INTENT_SCORE);
+  const batchSize = resolvePositiveNumber(options.batchSize, 'ENRICHMENT_BATCH_SIZE', DEFAULT_BATCH_SIZE);
 
   const client: EnrichmentClient = options._client ?? new GojiBerryClient();
   const webResearch: WebResearchFn = options._webResearch ?? defaultWebResearch;
