@@ -1,0 +1,264 @@
+---
+feature: Personalized Message Generation
+domain: core-pipeline
+source: src/automations/message-generation.ts
+tests:
+  - tests/automations/message-generation.test.ts
+components: []
+design_refs: []
+status: specced
+created: 2026-04-13
+updated: 2026-04-13
+---
+
+# Personalized Message Generation
+
+**Source File**: src/automations/message-generation.ts
+**Design System**: N/A (no UI — automation script)
+**Depends on**: GojiBerry API Client (`src/api/gojiberry-client.ts`), Lead Enrichment + Intent Scoring (feature 3, provides fitScore + intentSignals)
+
+## Overview
+
+For enriched leads that score above the intent threshold, generates hyper-personalized LinkedIn messages based on the enrichment data — buying signals, company context, and ICP fit. Stores messages on each lead via `PATCH /v1/contact/{id}` (personalizedMessages field). Messages sit in GojiBerry ready for campaign launch — nothing sends without the founder approving in GojiBerry's UI.
+
+The founder wants messages that sound like they actually read the person's profile. Not "I noticed we're in the same industry" — real references to recent activity, specific pain points, and genuine reasons to connect. This is the difference between a 2% reply rate and a meaningful one.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOJIBERRY_API_KEY` | Yes | Bearer token for GojiBerry API (used by API client) |
+| `ANTHROPIC_API_KEY` | Yes | API key for Anthropic (used for message generation via Claude) |
+| `ICP_DESCRIPTION` | Yes | Plain-English ideal customer description — used to frame the value prop in messages |
+| `MIN_INTENT_SCORE` | No | Minimum score to consider a lead "warm" and eligible for messaging (default: 50) |
+| `MESSAGE_BATCH_SIZE` | No | Max leads to generate messages for per run (default: 25) |
+| `MESSAGE_TONE` | No | Tone guidance for messages: "casual", "professional", "direct" (default: "casual") |
+| `MESSAGE_MAX_LENGTH` | No | Max character count per message (default: 300 — LinkedIn connection request limit) |
+
+## Feature: Personalized Message Generation
+
+### Scenario: Generate personalized messages for warm leads
+Given the founder has warm leads in GojiBerry (fitScore >= MIN_INTENT_SCORE) with intentSignals but no personalizedMessages
+And `ICP_DESCRIPTION` is set to "Series A SaaS founders in fintech who are actively hiring"
+When the message generation automation runs
+Then it fetches warm leads that don't have messages yet
+And generates a hyper-personalized LinkedIn message for each lead based on their intentSignals, company, jobTitle, and ICP context
+And stores each message on the lead via `PATCH /v1/contact/{id}` with personalizedMessages
+And outputs a summary: "{count} messages generated — ready for review in GojiBerry"
+
+### Scenario: Identify leads that need messages
+Given GojiBerry contains leads with various states
+When the automation fetches leads for messaging
+Then it selects leads where fitScore >= MIN_INTENT_SCORE (warm leads)
+And skips leads that already have personalizedMessages set (already messaged)
+And skips leads with no intentSignals (not yet enriched — nothing to personalize from)
+And respects `MESSAGE_BATCH_SIZE` — processes only that many per run
+And processes leads in score-descending order (warmest first)
+
+### Scenario: Reject run when ICP description is missing
+Given `ICP_DESCRIPTION` is empty or not set in `.env.local`
+When the message generation automation runs
+Then it throws a `ConfigError` with message: "Missing ICP_DESCRIPTION in .env.local — describe your ideal customer first"
+And no messages are generated
+
+### Scenario: Generate a message that references real buying signals
+Given a lead named "Sarah Chen" at "FinPay" with jobTitle "CEO"
+And intentSignals: ["Recently raised Series A ($8M)", "Hiring 3 SDRs", "Posted about scaling outbound"]
+And the ICP is about founders scaling outbound
+When the automation generates a message for this lead
+Then the message references at least one specific buying signal (not generic platitudes)
+And the message connects the signal to a relevant value prop
+And the message reads like a human wrote it after actually looking at their profile
+And the message does NOT include: "I noticed we're both in [industry]", "I came across your profile", or other template phrases
+
+### Scenario: Respect MESSAGE_MAX_LENGTH for LinkedIn connection requests
+Given `MESSAGE_MAX_LENGTH` is set to 300
+When the automation generates a message
+Then each message is at most 300 characters
+And the message is complete (not truncated mid-sentence)
+And key personalization is preserved even at short lengths
+
+### Scenario: Use default MESSAGE_MAX_LENGTH when not configured
+Given `MESSAGE_MAX_LENGTH` is not set in `.env.local`
+When the automation runs
+Then it uses a default max length of 300 characters (LinkedIn connection request limit)
+
+### Scenario: Respect message tone setting
+Given `MESSAGE_TONE` is set to "professional"
+When the automation generates messages
+Then messages use a professional tone (no slang, proper grammar, business-appropriate)
+And personalization quality is maintained regardless of tone
+
+### Scenario: Use default casual tone when MESSAGE_TONE is not configured
+Given `MESSAGE_TONE` is not set in `.env.local`
+When the automation runs
+Then it uses a default tone of "casual"
+And messages feel conversational, like a real founder reaching out
+
+### Scenario: Respect message batch size
+Given GojiBerry has 40 warm leads without messages
+And `MESSAGE_BATCH_SIZE` is set to 15
+When the automation runs
+Then it generates messages for only the top 15 leads (sorted by fitScore descending — warmest first)
+And outputs: "15 messages generated (25 remaining — run again to continue)"
+
+### Scenario: Use default batch size when not configured
+Given `MESSAGE_BATCH_SIZE` is not set in `.env.local`
+When the automation runs
+Then it uses a default batch size of 25
+
+### Scenario: Handle lead with minimal intent signals
+Given a lead has fitScore of 55 (above threshold) but only one intentSignal: ["Active on LinkedIn"]
+When the automation generates a message for this lead
+Then it still produces a personalized message using available data (company, jobTitle, the single signal)
+And does NOT fabricate signals that weren't in the data
+And logs: "Low signal: {firstName} {lastName} — message generated from limited data"
+
+### Scenario: Handle GojiBerry API errors during message storage
+Given the automation is generating messages for 10 leads
+And the GojiBerry API returns an error when updating lead #4
+When the automation processes the batch
+Then it logs: "Failed to save message for: {firstName} {lastName} — {error message}"
+And continues generating and storing messages for the remaining leads
+And the summary includes the failure count
+
+### Scenario: Handle rate limits during batch messaging
+Given the automation is generating messages for 25 leads
+And each lead requires 1 PATCH call to GojiBerry (plus 1 Anthropic call for generation)
+When updating leads approaches the 100 req/min rate limit
+Then the GojiBerry API client handles rate limiting automatically
+And all messages are generated and stored without rate limit errors
+
+### Scenario: Handle authentication failure
+Given the GojiBerry API key is invalid or expired
+When the message generation automation runs
+Then it throws an `AuthError` from the API client
+And no messages are generated
+Note: If the error occurs during message saving (PATCH), the automation logs the AuthError message before re-throwing. If the error occurs during the initial lead fetch (searchLeads), AuthError propagates without additional console output.
+
+### Scenario: Handle Anthropic API failure during generation
+Given the automation is generating messages for 10 leads
+And the Anthropic API returns an error for lead #3
+When the automation processes the batch
+Then it logs: "Failed to generate message for: {firstName} {lastName} — {error message}"
+And continues with the remaining leads
+And the lead is included in the failed count
+
+### Scenario: Output message generation summary
+Given the automation generated messages for 12 leads
+When the run completes
+Then it outputs a summary table with: lead name, company, fitScore, message preview (first 80 chars)
+And a totals line: "12 messages generated — ready for review in GojiBerry"
+And leads are listed by fitScore descending (warmest first)
+
+### Scenario: Generate messages for a specific lead by ID
+Given the founder wants to generate a message for a single lead
+When the automation runs with a specific lead ID
+Then it fetches that lead from GojiBerry via `GET /v1/contact/{id}`
+And validates the lead has intentSignals and fitScore >= threshold
+And generates and stores the message
+And outputs: "{firstName} {lastName} — message ready: {preview}"
+
+### Scenario: Regenerate messages (force refresh)
+Given a lead already has personalizedMessages set
+And the founder wants to regenerate with updated signals or a new tone
+When the automation runs with the `forceRegenerate` option enabled
+Then it regenerates messages even for leads that already have personalizedMessages
+And overwrites the previous messages in GojiBerry
+And logs: "Regenerated: {firstName} {lastName}"
+
+### Scenario: Skip leads below intent threshold
+Given a lead has fitScore of 30 (below MIN_INTENT_SCORE of 50)
+When the automation fetches leads for messaging
+Then this lead is not included in the batch
+And no message is generated for cold leads
+
+## Module Structure
+
+```
+src/automations/
+├── message-generation.ts   # Main automation — orchestrates fetch + generate + store
+├── types.ts                # Shared types (extend with message-generation-specific types)
+```
+
+## Public API Surface
+
+```typescript
+interface MessageResult {
+  lead: Lead;
+  message: string;           // The generated personalized message
+}
+
+interface MessageGenerationResult {
+  generated: MessageResult[];                    // Successfully generated + stored
+  failed: { lead: Lead; error: string }[];       // Generation or storage failures
+  skipped: Lead[];                                // Already have messages (no forceRegenerate)
+  remaining: number;                              // Warm leads still needing messages
+}
+
+type MessageGeneratorFn = (
+  lead: Lead,
+  icpDescription: string,
+  options: { tone: string; maxLength: number }
+) => Promise<string>;
+
+async function generateMessages(options?: {
+  leadId?: string;              // Generate for a single lead by ID
+  forceRegenerate?: boolean;    // Overwrite existing messages
+  batchSize?: number;           // Override MESSAGE_BATCH_SIZE
+  minIntentScore?: number;      // Override MIN_INTENT_SCORE
+  icpDescription?: string;      // Override ICP_DESCRIPTION
+  tone?: string;                // Override MESSAGE_TONE
+  maxLength?: number;           // Override MESSAGE_MAX_LENGTH
+  _messageGenerator?: MessageGeneratorFn;  // Test-only: inject mock generator
+  _client?: GojiBerryClient;              // Test-only: inject mock GojiBerry client
+}): Promise<MessageGenerationResult>
+```
+
+## Data Flow
+
+```
+1. Read ICP_DESCRIPTION + MIN_INTENT_SCORE + MESSAGE_* vars from .env.local
+           │
+2. Fetch warm leads from GojiBerry
+   (searchLeads where fitScore >= threshold, no personalizedMessages,
+    has intentSignals, sorted by fitScore desc, limited by MESSAGE_BATCH_SIZE)
+           │
+3. For each lead:
+   ├── Build prompt with: lead profile, intentSignals, ICP description, tone, max length
+   ├── Claude generates a personalized LinkedIn message
+   └── Message references specific buying signals — no generic templates
+           │
+4. Store message on each lead:
+   PATCH /v1/contact/{id} with { personalizedMessages: [message] }
+           │
+5. Output summary table + totals
+           │
+6. Messages sit in GojiBerry — founder reviews and approves in the UI before campaign launch
+```
+
+## Key Design Decisions
+
+### Message generation is LLM-delegated, not template-based
+
+Like enrichment delegates scoring to Claude, message generation delegates writing to Claude. The prompt includes the lead's profile, buying signals, ICP context, and tone guidance. Claude writes the message. This avoids the template trap — every message is unique because the inputs are unique.
+
+### personalizedMessages is a string array
+
+The GojiBerry API stores `personalizedMessages` as `string[]`. For now, we generate one message per lead (the array contains a single element). Future iterations could generate variants (A/B test different hooks) — the data model supports it without changes.
+
+### Warmest leads first
+
+Unlike enrichment (FIFO — oldest first), message generation prioritizes by fitScore descending. The founder's warmest leads get messages first because those are most likely to reply. If the batch size cuts off, cold-ish leads above threshold wait for the next run.
+
+### Tone is configurable but defaults to casual
+
+Most founders doing LinkedIn outreach get better reply rates with casual, human messages. The `MESSAGE_TONE` env var lets users adjust, but the default is conversational — "hey Sarah, saw you just raised your Series A" not "Dear Ms. Chen, I noticed your recent funding round."
+
+### 300-character default matches LinkedIn connection requests
+
+LinkedIn connection request messages are capped at 300 characters. Since this is the primary use case (cold outreach to people you're not connected with), the default max length matches this constraint. Users doing InMail (which allows longer messages) can increase it.
+
+### No messages for leads without intent signals
+
+A lead with a fitScore but no intentSignals has nothing to personalize from. The message would inevitably be generic. Better to skip and let the founder know these leads need enrichment first.
