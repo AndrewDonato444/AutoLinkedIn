@@ -24,7 +24,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
 | core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | implemented |
 | core-pipeline | [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
-| core-pipeline | [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md) | `src/automations/message-generation.ts` | tests/automations/message-generation.test.ts | - | specced |
+| core-pipeline | [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md) | `src/automations/message-generation.ts` | tests/automations/message-generation.test.ts | - | implemented |
 | intelligence-layer | [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md) | `src/automations/campaign-performance-analytics.ts` | tests/automations/campaign-performance-analytics.test.ts | - | implemented |
 | intelligence-layer | [Warm Lead List Builder](.specs/features/intelligence-layer/warm-lead-list-builder.feature.md) | `src/automations/warm-lead-list-builder.ts` | tests/automations/warm-lead-list-builder.test.ts | - | implemented |
 | intelligence | [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md) | `src/automations/pipeline-overview-report.ts` | tests/automations/pipeline-overview-report.test.ts | - | implemented |
@@ -38,9 +38,9 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Status | Count |
 |--------|-------|
 | stub | 0 |
-| specced | 1 |
+| specced | 0 |
 | tested | 0 |
-| implemented | 11 |
+| implemented | 12 |
 | **Total** | **12** |
 
 ---
@@ -53,7 +53,7 @@ _None_
 
 ### Specced
 
-- [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
+_None_
 
 ### Tested
 
@@ -72,6 +72,7 @@ _None_
 - [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md)
 - [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md)
 - [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md)
+- [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
 
 ---
 
