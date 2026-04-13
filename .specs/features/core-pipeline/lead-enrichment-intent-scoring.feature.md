@@ -124,8 +124,8 @@ And all leads are enriched without rate limit errors
 Given the GojiBerry API key is invalid or expired
 When the lead enrichment automation runs
 Then it throws an `AuthError` from the API client
-And outputs: "GojiBerry API key is invalid or expired — check GOJIBERRY_API_KEY in .env.local"
 And no leads are enriched
+Note: If the error occurs during lead updating (PATCH), the automation logs the AuthError message ("GojiBerry API key is invalid or expired — check GOJIBERRY_API_KEY in .env.local") before re-throwing. If the error occurs during the initial fetch (searchLeads), AuthError propagates without additional console output.
 
 ### Scenario: Output enrichment summary
 Given the automation enriched 12 leads with `MIN_INTENT_SCORE` of 50
