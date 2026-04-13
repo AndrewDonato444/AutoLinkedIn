@@ -314,6 +314,48 @@ The two calls run in parallel (`Promise.all`). The Set-diff avoids a nested loop
 
 ---
 
+## Derive `remaining` from filtered eligibles, not `page.total`
+
+When fetching a large page for client-side filtering, compute the `remaining` count from the filtered-eligible count minus the batch size — not from `page.total`:
+
+```ts
+// WRONG — page.total includes already-messaged and signal-less leads
+result.remaining = page.total - batchSize; // inflated — misleads the user
+
+// RIGHT — remaining is eligible leads that didn't fit in this batch
+const eligible = page.leads
+  .filter((l) => !(l.personalizedMessages?.length))
+  .filter((l) => (l.intentSignals?.length ?? 0) > 0);
+const toProcess = eligible.slice(0, batchSize);
+result.remaining = eligible.length - toProcess.length; // ✓
+```
+
+**Why it matters:** `page.total` is the pre-filter API count. If 200 warm leads exist, 150 already have messages, and `batchSize=25`, the correct remaining is 25 (50 eligible − 25 processed), not 175. A remaining count derived from `page.total` would show the user false urgency.
+
+Applies whenever a batch function fetches a large page for client-side filtering — always chain the `remaining` calculation after all filter passes.
+
+---
+
+## Sentence-boundary truncation for LLM output with hard character limits
+
+When LLM-generated text must fit a hard character limit (LinkedIn connection request: 300 chars, SMS: 160 chars), truncate at the last sentence boundary rather than cutting mid-word or mid-sentence:
+
+```ts
+function enforceMaxLength(message: string, maxLength: number): string {
+  if (message.length <= maxLength) return message;
+  const truncated = message.slice(0, maxLength);
+  const lastPeriod = truncated.lastIndexOf('.');
+  // Use sentence boundary if it's past 50% of the limit (preserves meaningful content)
+  return lastPeriod > maxLength * 0.5 ? message.slice(0, lastPeriod + 1) : truncated;
+}
+```
+
+The 50% floor prevents truncating to a single short sentence when the period is near the start. If no useful period exists, fall back to hard truncation. Also document the `maxLength` default in the spec — e.g., 300 matches LinkedIn's connection request limit and should be the named-constant default.
+
+Note: prompt the LLM to stay under the limit too (`"Keep it under ${maxLength} characters — hard limit"`), but enforce programmatically because LLMs sometimes exceed stated constraints.
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:

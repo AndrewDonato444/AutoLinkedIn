@@ -12,12 +12,12 @@
 
 | Phase | Features | Done | Status |
 |-------|----------|------|--------|
-| 1: Core Pipeline | 4 | 3 | ⏸️ |
+| 1: Core Pipeline | 4 | 4 | ✅ |
 | 2: Intelligence Layer | 4 | 3 | ⏸️ |
 | 3: Automation & Scheduling | 4 | 3 | 🔄 |
 | 4: Optimization Loop | 3 | 2 | 🔄 |
 
-**Overall: 11/15 (73%) — Last updated: 2026-04-13**
+**Overall: 12/15 (80%) — Last updated: 2026-04-13**
 
 ---
 
@@ -30,7 +30,7 @@ Get leads from the web into GojiBerry with personalized messages. The minimum vi
 | 1 | GojiBerry API client | vision | M | - | ✅ |
 | 2 | ICP-based lead discovery | vision | M | 1 | ✅ |
 | 3 | Lead enrichment + intent scoring | vision | M | 1 | ✅ |
-| 4 | Personalized message generation | vision | M | 1,3 | ⏸️ |
+| 4 | Personalized message generation | vision | M | 1,3 | ✅ |
 
 **Feature 1 — GojiBerry API client**: Shell-based or script-based wrapper around the GojiBerry REST API. Handles auth (bearer token from `.env.local`), CRUD for contacts, campaign retrieval, list retrieval. Includes rate limit handling (100 req/min) and error reporting. This is the foundation everything else calls.
 

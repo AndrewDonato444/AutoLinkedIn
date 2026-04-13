@@ -10,6 +10,22 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Personalized Message Generation** — the most hard-won lessons from this session:
+
+1. **`remaining` from filtered eligibles, not `page.total`** (api.md): When client-side filtering after a large fetch, `remaining = eligible.length - batchSize`. Using `page.total` inflates the count with already-messaged and signal-less leads, misleading the user about how many runs are left.
+
+2. **Force-refresh flag must appear in EVERY filter pass** (general.md): When a batch has both a "skip already processed" partition AND an eligibility filter, `forceRegenerate` must be threaded through each independently. Missing it from the partition pass yields a wrong `skipped` count even when the eligible filter is correct.
+
+3. **Sentence-boundary truncation for LLM character-limited output** (api.md): Truncate at the last period past 50% of the limit — not at `maxLength`. Hard-truncation mid-sentence is jarring; sentence-boundary truncation preserves readability. Also prompt the LLM to respect the limit, but always enforce programmatically.
+
+4. **Tests green on first pass when patterns are reused** (testing.md): Zero friction — `Pick<>` client type, `_messageGenerator` injection, `resolvePositiveNumber` reuse, and `vi.spyOn(console)` for log assertions all carried over cleanly from prior features. Validates these patterns as stable; apply them upfront on the next feature.
+
+5. **Single-responsibility extraction during refactor** (general.md): `defaultMessageGenerator` was ~60 lines combining prompt construction, API call, and length enforcement. Extracting `buildMessagePrompt` and `enforceMaxLength` reduced it to ~20 lines with three clearly separate concerns. When a function has inline string templates AND inline validation logic, those are extraction candidates.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Lead Quality Feedback Loop** — the most hard-won lessons from this session:
 
 1. **Sequential-then-parallel fetch for AuthError gate** (api.md): Fetch the auth-gating call first (e.g., `getCampaigns`), then run remaining independent calls in `Promise.all`. Ensures `AuthError` aborts before any downstream work starts. Discovered when `Promise.all([campaigns, leads, intentCounts])` failed the "does not call searchLeads" test.
