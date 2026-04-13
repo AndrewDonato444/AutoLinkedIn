@@ -19,6 +19,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Domain | Feature | Source | Tests | Components | Status |
 |--------|---------|--------|-------|------------|--------|
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
+| core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | stub |
 
 ---
 
@@ -26,11 +27,11 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 
 | Status | Count |
 |--------|-------|
-| stub | 0 |
+| stub | 1 |
 | specced | 0 |
 | tested | 0 |
 | implemented | 1 |
-| **Total** | **1** |
+| **Total** | **2** |
 
 ---
 
@@ -38,7 +39,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 
 ### Stub
 
-_None_
+- [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md)
 
 ### Specced
 
