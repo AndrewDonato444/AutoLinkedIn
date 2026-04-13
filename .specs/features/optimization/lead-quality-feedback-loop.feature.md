@@ -6,7 +6,7 @@ tests:
   - tests/automations/lead-quality-feedback-loop.test.ts
 components: []
 design_refs: []
-status: specced
+status: implemented
 created: 2026-04-13
 updated: 2026-04-13
 ---
@@ -277,6 +277,17 @@ export type PatternAnalysisFn = (
   recommendations: FeedbackRecommendation[];
 }>;
 
+/** Real Anthropic-backed implementation of PatternAnalysisFn (exported for testing) */
+export async function defaultAnalyzePatterns(
+  repliedLeads: Lead[],
+  nonRepliedLeads: Lead[],
+  _allLeads: Lead[],
+  _campaigns: Campaign[],
+): Promise<{
+  signalEffectiveness: SignalEffectiveness[];
+  recommendations: FeedbackRecommendation[];
+}>;
+
 export async function analyzeLeadQuality(options?: {
   minCampaigns?: number;
   minLeads?: number;
@@ -292,49 +303,57 @@ export async function analyzeLeadQuality(options?: {
 ```
 1. Validate config: GOJIBERRY_API_KEY and ANTHROPIC_API_KEY present
            │
-2. Fetch in parallel:
-   ├── All campaigns via GET /v1/campaign
+2. Fetch campaigns first (sequential) via GET /v1/campaign
+   └── AuthError propagates immediately — no partial report produced
+           │
+3. Fetch in parallel:
    ├── All leads via GET /v1/contact (paginated, all pages)
    └── Intent type counts via GET /v1/contact/intent-type-counts
            │
-3. Gate check: minimum campaigns and minimum leads met?
+4. Gate check: minimum campaigns and minimum leads met?
    ├── No → return early with "not enough data" message
    └── Yes → continue
            │
-4. Segment leads:
+5. Segment leads:
    ├── Replied leads (intentType: 'replied')
    └── Non-replied leads (all minus replied, via Set subtraction)
            │
-5. Compute intent type correlations:
+6. Compute intent type correlations:
    ├── Group leads by intentType
    ├── For each type: count sent, count replied, compute reply rate
    └── Rank by reply rate, flag confidence by sample size
            │
-6. Build pipeline funnel:
+7. Build pipeline funnel:
    ├── Count leads at each stage (discovered, enriched, warm, campaigned, replied)
    └── Identify biggest conversion drop-off
            │
-7. Send to Claude for pattern analysis:
+8. Compute field importance (deterministic):
+   ├── intentSignals present vs. empty
+   ├── company populated vs. missing
+   ├── jobTitle populated vs. missing
+   └── fitScore above vs. below median
+           │
+9. Send to Claude for pattern analysis:
    ├── Replied lead profiles + intent signals
-   ├── Non-replied lead profiles + intent signals
-   └── Campaign timeline for trend analysis
+   └── Non-replied lead profiles + intent signals
            │
-8. Claude extracts:
-   ├── Signal effectiveness (which intentSignals[] items predict replies)
-   └── Scoring weight recommendations
+10. Claude extracts:
+    ├── Signal effectiveness (which intentSignals[] items predict replies)
+    └── Scoring weight recommendations
+    └── Merge with field importance signals
            │
-9. Compute scoring health:
-   ├── Split leads by median fitScore
-   ├── Compare reply rates above vs. below median
-   └── Flag drift if gap has narrowed in recent campaigns
+11. Compute scoring health:
+    ├── Split leads by median fitScore
+    ├── Compare reply rates above vs. below median
+    └── Flag drift if ratio < 1.5x
            │
-10. Compute trend:
+12. Compute trend:
     ├── Split campaigns chronologically (first half / second half)
-    └── Compare reply rates
+    └── Compare reply rates (needs 6+ completed campaigns)
            │
-11. Assemble report: funnel + intent correlations + signals + scoring + trend + recommendations
+13. Assemble report: funnel + intent correlations + signals + scoring + trend + recommendations
            │
-12. Output report — founder reviews and decides what to change
+14. Output report — founder reviews and decides what to change
 ```
 
 ## Dependencies
