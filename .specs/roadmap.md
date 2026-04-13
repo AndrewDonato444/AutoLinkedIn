@@ -14,10 +14,10 @@
 |-------|----------|------|--------|
 | 1: Core Pipeline | 4 | 4 | ✅ |
 | 2: Intelligence Layer | 4 | 3 | ⏸️ |
-| 3: Automation & Scheduling | 4 | 3 | 🔄 |
+| 3: Automation & Scheduling | 4 | 4 | ✅ |
 | 4: Optimization Loop | 3 | 2 | 🔄 |
 
-**Overall: 12/15 (80%) — Last updated: 2026-04-13**
+**Overall: 13/15 (87%) — Last updated: 2026-04-13**
 
 ---
 
@@ -69,7 +69,7 @@ Make it hands-off. Set up recurring automations so the user only approves.
 
 | # | Feature | Source | Complexity | Deps | Status |
 |---|---------|--------|------------|------|--------|
-| 20 | Daily lead scan automation | vision | M | 2,3,4 | ⬜ |
+| 20 | Daily lead scan automation | vision | M | 2,3,4 | ✅ |
 | 21 | Weekly performance report | vision | S | 11 | ✅ |
 | 22 | Morning briefing | vision | M | 10,13 | ✅ |
 | 23 | Campaign health monitor | vision | S | 11 | ✅ |
