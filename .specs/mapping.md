@@ -28,7 +28,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | intelligence-layer | [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md) | `src/automations/campaign-performance-analytics.ts` | tests/automations/campaign-performance-analytics.test.ts | - | implemented |
 | intelligence-layer | [Warm Lead List Builder](.specs/features/intelligence-layer/warm-lead-list-builder.feature.md) | `src/automations/warm-lead-list-builder.ts` | tests/automations/warm-lead-list-builder.test.ts | - | implemented |
 | intelligence | [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md) | `src/automations/pipeline-overview-report.ts` | tests/automations/pipeline-overview-report.test.ts | - | implemented |
-| optimization | [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md) | `src/automations/icp-refinement.ts` | tests/automations/icp-refinement.test.ts | - | specced |
+| optimization | [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md) | `src/automations/icp-refinement.ts` | tests/automations/icp-refinement.test.ts | - | implemented |
 
 ---
 
