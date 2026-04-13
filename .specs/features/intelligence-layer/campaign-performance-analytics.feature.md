@@ -154,3 +154,33 @@ export async function analyzeCampaignPerformance(options?: {
 - `Campaign` type from `src/api/types.ts` — has `metrics: { sent, opened, replied, converted }`
 
 ## Learnings
+
+### Sort for display vs. sort for analysis — keep original order for trend
+
+`allMetrics` is sorted by reply rate (highest first) for display. But `computeTrend` needs the campaigns in **original API order** (creation order = chronological). Passing the sorted array to trend analysis would make "latest" always the lowest-reply campaign, making the trend always appear declining.
+
+Fix: filter `completedCampaigns` from `allMetrics` (pre-sort), then pass both the sorted list and the unsorted completed list separately to `buildReportText`.
+
+### `needsAttention` is null when ≤1 campaign has sends
+
+With exactly one campaign that has sends, that campaign is the top performer. Assigning it to `needsAttention` too would surface the same campaign under two contradictory labels. Guard with `withSends.length > 1`:
+
+```ts
+const needsAttention = withSends.length > 1 ? withSends[withSends.length - 1] : null;
+```
+
+### Zero-send campaigns: include in status groups, exclude from all metric computations
+
+Draft/new campaigns with `sent === 0` still appear in `byStatus` groups (shown as "no data yet" in the report), but are excluded from `withSends` for averages, rankings, and trend. This is the correct UX split: the founder sees the campaign exists, but it doesn't pollute analytics.
+
+### `metrics ??` guard for campaigns with no metrics field
+
+Draft campaigns may omit `metrics` entirely (field is absent, not `{}`). The `??` guard provides a safe zero fallback without an extra `if`:
+
+```ts
+const m = campaign.metrics ?? { sent: 0, opened: 0, replied: 0, converted: 0 };
+```
+
+### `Pick<>` on the function signature eliminates cast in tests
+
+Using `type AnalyticsClient = Pick<GojiBerryClient, 'getCampaigns'>` as the parameter type (not just in the mock type) means any object with a `getCampaigns` method satisfies it. The test `MockClient` type satisfies `AnalyticsClient` structurally — no `as unknown as GojiBerryClient` cast needed anywhere.
