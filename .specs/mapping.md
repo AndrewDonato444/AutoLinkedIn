@@ -21,6 +21,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
 | core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | implemented |
 | core-pipeline | [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
+| intelligence | [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md) | `src/automations/pipeline-overview-report.ts` | tests/automations/pipeline-overview-report.test.ts | - | implemented |
 
 ---
 
@@ -31,8 +32,8 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | stub | 0 |
 | specced | 0 |
 | tested | 0 |
-| implemented | 3 |
-| **Total** | **3** |
+| implemented | 4 |
+| **Total** | **4** |
 
 ---
 
@@ -55,6 +56,7 @@ _None_
 - [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md)
 - [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md)
 - [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md)
+- [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md)
 
 ---
 
