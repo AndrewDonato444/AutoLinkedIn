@@ -10,6 +10,22 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**ICP Refinement from Results** — the most hard-won lessons from this session:
+
+1. **`intentType: 'replied'` as reply-status proxy** (api.md): No per-lead reply-status field exists in `LeadFilters`. Use `intentType: 'replied'` as a proxy filter + Set-diff against all leads to derive the non-replied segment. Run both `searchLeads` calls in `Promise.all`.
+
+2. **Enforce confidence rules post-LLM, not inside the LLM** (general.md): After the LLM returns trait classifications, apply a deterministic `applyConfidenceRules` step in the automation. Traits with `sampleSize < MIN_SAMPLE_FOR_HIGH_CONFIDENCE` get reclassified 'working' → 'watch' regardless of what the LLM said. Keeps confidence enforcement a testable pure function.
+
+3. **Gate `proposedIcp` to `null` when no high-confidence suggestions** (general.md): Only expose a proposed ICP when at least one high-confidence suggestion exists. Prevents founders from acting on small-sample noise. Test explicitly: low-confidence-only output → `proposedIcp === null`.
+
+4. **Named factory for duplicate early-return report objects** (general.md): Two early-exit gates (insufficient campaigns, zero replies) returned 9-field objects sharing 8 of 9 fields. Extract a `makeInsufficientDataReport(currentIcp, campaignCount, totalSent, message)` factory. Signals the semantic, eliminates the duplication, makes the one varying field explicit.
+
+5. **Spec dependency section drifts when anticipated helper isn't used** (general.md): Spec listed `analyzeCampaignPerformance()` as a dependency; implementation never imported it (direct `c.metrics` access was simpler). The dependency section needs verification in every drift check — check that listed deps appear in the source file's imports.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Campaign Health Monitor** — the most hard-won lessons from this session:
 
 1. **Separate `recoveries` array from `alerts`** (general.md): Recovery signals belong in a dedicated `recoveries: CampaignAlert[]` field on the report interface — not mixed into `alerts`. Callers can then distinguish "new problem" from "resolved problem" without inspecting `alert.type`.

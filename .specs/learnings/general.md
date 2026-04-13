@@ -106,6 +106,67 @@ This makes the caller contract explicit: `report.alerts.length > 0` means "somet
 
 ---
 
+## Apply LLM confidence overrides deterministically in the automation layer
+
+When delegating analysis to an LLM that returns confidence classifications (e.g., `'working'` vs `'watch'`), don't trust the LLM to apply your confidence rules correctly. Apply a deterministic post-processing step in the automation:
+
+```ts
+function applyConfidenceRules(traits: IcpTrait[]): IcpTrait[] {
+  return traits.map((t) => {
+    const lowSample = t.sampleSize < MIN_SAMPLE_FOR_HIGH_CONFIDENCE;
+    const confidence = lowSample ? 'low' : t.confidence;
+    const category = lowSample && t.category === 'working' ? 'watch' : t.category;
+    return { ...t, confidence, category };
+  });
+}
+```
+
+This pure function is independently unit-testable, keeps the rule in one named place (`MIN_SAMPLE_FOR_HIGH_CONFIDENCE`), and produces consistent results regardless of what the LLM returned for small-sample traits. The rule: "LLM says 'working' but sample < 10 → reclassify to 'watch'."
+
+---
+
+## Gate proposed output fields to `null` when no high-confidence data exists
+
+When a report can propose a config change (new ICP description, revised thresholds), gate the proposed field to `null` unless at least one high-confidence signal backs it:
+
+```ts
+const highConfSuggestions = suggestions.filter((s) => s.confidence === 'high');
+const proposedIcp = highConfSuggestions.length > 0 ? analysis.proposedIcp : null;
+```
+
+This prevents users from acting on noise. Document the null case in the interface type (`proposedIcp: string | null`) and test it explicitly: "when only low-confidence suggestions exist, `proposedIcp === null`." The `reportText` builder should also hide the "Suggested ICP Update" section when `proposedIcp` is null.
+
+---
+
+## Named factory for duplicate early-return report objects
+
+When two or more early-exit gates return near-identical report objects differing in only 1-2 fields, extract a named factory rather than duplicating inline:
+
+```ts
+function makeInsufficientDataReport(
+  currentIcp: string, campaignCount: number, totalSent: number, message: string
+): IcpRefinementReport {
+  return {
+    currentIcp, campaignCount, totalSent,
+    totalReplied: 0, overallReplyRate: 0,
+    traits: { working: [], notWorking: [], inconclusive: [], watch: [] },
+    suggestions: [], proposedIcp: null, reportText: message,
+  };
+}
+```
+
+The factory name signals the semantic ("insufficient data, returning empty report") and the varying parameter (`totalSent: 0` vs computed) is explicit at each call site. Avoids 9-field duplication where 8 of 9 fields are identical across two branches.
+
+---
+
+## Spec dependency section drifts when the implementation takes a simpler path
+
+A spec's Dependencies section is written before implementation. If the implementation discovers a simpler approach (e.g., reading `c.metrics` directly instead of calling an existing analytics helper), the dependency listed in the spec becomes incorrect. This will not be caught by scenario tests — only the drift check catches it.
+
+Add dependency-section verification to the post-build drift check: read each listed dependency, confirm it appears in the source file's imports. False dependencies (anticipated helpers that weren't needed) and missing dependencies (helpers that were added during implementation) are both worth flagging.
+
+---
+
 ## `status` field value and display format can intentionally differ — document both
 
 A data model's `status` field (machine-readable, for serialization and logging) can legitimately differ from the display string shown to the user. Example:
