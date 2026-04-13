@@ -6,7 +6,7 @@ tests:
   - tests/automations/message-style-optimization.test.ts
 components: []
 design_refs: []
-status: specced
+status: implemented
 created: 2026-04-13
 updated: 2026-04-13
 ---
@@ -172,13 +172,16 @@ Based on {total_campaigns} campaigns, {total_messaged} leads messaged, {total_re
   
   No impact:
     {signal_type}: {rate}% reply rate — same as baseline
+  
+  Hurts reply rate:
+    {signal_type}: {rate}% reply rate
 
 --- Phrases to Avoid ---
   "{phrase}": {rate}% reply rate in messages containing it
   "{phrase}": {rate}% reply rate in messages containing it
 
 --- Patterns to Watch (low confidence) ---
-  {pattern}: promising at {rate}% but only {count} messages — needs more data
+  {pattern}: promising at {rate}% but only {count} messages — low confidence, needs more data
 
 --- Recommendations ---
   1. {recommendation with data backing}
