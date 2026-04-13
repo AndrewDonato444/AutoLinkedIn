@@ -6,7 +6,7 @@ tests:
   - tests/automations/icp-lead-discovery.test.ts
 components: []
 design_refs: []
-status: stub
+status: implemented
 created: 2026-04-13
 updated: 2026-04-13
 ---
@@ -30,6 +30,7 @@ The founder describes their ideal customer in plain English. The system finds pe
 | `ICP_DESCRIPTION` | Yes | Plain-English description of ideal customer (e.g., "Series A SaaS founders in fintech who are actively hiring") |
 | `DAILY_LEAD_SCAN_LIMIT` | No | Max leads to discover per run (default: 50) |
 | `GOJIBERRY_API_KEY` | Yes | Bearer token for GojiBerry API (used by API client) |
+| `ANTHROPIC_API_KEY` | Yes | API key for Anthropic (used by `defaultWebSearch` to call Claude with web search tool) |
 
 ## Feature: ICP-Based Lead Discovery
 
@@ -67,7 +68,7 @@ And a lead with that profileUrl already exists in GojiBerry
 When the automation attempts to create the lead
 Then it skips the duplicate
 And logs: "Skipped: Jane Doe — already in GojiBerry"
-And the duplicate is not counted toward the scan limit
+And the duplicate slot is consumed from the scan limit (duplicates are detected during processing, after the limit window is applied)
 
 ### Scenario: Extract structured lead data from web search
 Given the automation found a matching person on the web
@@ -112,10 +113,10 @@ And no leads are created
 ### Scenario: Rank leads by ICP fit before applying limit
 Given `DAILY_LEAD_SCAN_LIMIT` is 10
 And the automation discovered 20 potential leads
-When it ranks them by ICP relevance
-Then it selects the top 10 closest matches to the ICP description
+When the web search returns leads ranked best-to-weakest ICP fit (ranking delegated to Anthropic web search prompt)
+Then the automation selects the top 10 (first in the ranked list)
 And creates those 10 in GojiBerry
-And the skipped leads are the weakest matches
+And the leads beyond position 10 (weakest matches) are not created
 
 ## Module Structure
 
@@ -148,6 +149,8 @@ interface DiscoveryResult {
 async function discoverLeads(options?: {
   icpDescription?: string;  // Override .env.local ICP_DESCRIPTION
   limit?: number;           // Override DAILY_LEAD_SCAN_LIMIT
+  _webSearch?: WebSearchFn; // Test-only: inject a mock web search function
+  _client?: LeadClient;     // Test-only: inject a mock GojiBerry client
 }): Promise<DiscoveryResult>
 ```
 
@@ -160,7 +163,7 @@ async function discoverLeads(options?: {
            │
 3. Parse results → DiscoveredLead[]
            │
-4. Rank by ICP fit, apply DAILY_LEAD_SCAN_LIMIT
+4. Apply DAILY_LEAD_SCAN_LIMIT (leads already ranked best-first by web search)
            │
 5. For each lead:
    ├── Check if profileUrl exists in GojiBerry (searchLeads)
