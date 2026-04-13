@@ -221,4 +221,22 @@ class GojiBerryClient {
 
 ## Learnings
 
-_(none yet — will be populated after implementation)_
+### Two-tier 404 error strategy
+
+The base `request()` method throws an internal `Http404Error` on 404 responses. Each resource method catches it and rethrows as a public `NotFoundError` with the correct resource label and log message. A `getById<T>(urlPath, resourceName, id)` private helper consolidates this pattern for all GET-by-ID calls (`getLead`, `getCampaign`, `getList`). Methods with different HTTP verbs or post-success logging (e.g., `updateLead` using PATCH) keep their own inline handlers.
+
+### Library throws `ConfigError`, never `process.exit()`
+
+The spec was written aspirationally with "exits with a clear error" — corrected during drift check to "throws `ConfigError`". A reusable library must throw typed errors and let callers decide how to handle misconfiguration. `process.exit()` makes code untestable and non-reusable.
+
+### Spec language precision: "throws" vs "exits"
+
+Specs written before implementation may use loose language ("exits", "fails") that doesn't match the actual error surface. During drift reconciliation, update spec language to match what the code actually does — thrown exception types, method names, log message text — not aspirational descriptions.
+
+### Batch progress logging belongs to the automation layer, not the API client
+
+An early spec scenario included "logs progress: 'Processing lead {n}/{total}...'" — this was never implemented in the client because it's orchestration-level concern. The API client is a dumb HTTP wrapper; progress reporting lives in the automation that calls it. Remove over-specified behaviors from lower-layer specs during drift check.
+
+### `getById<T>` generic helper eliminates 404-catch duplication
+
+Three identical `try { return await request(...) } catch (Http404Error) { throw NotFoundError(...) }` blocks → extracted to one `private async getById<T>` method. Eliminated ~18 lines. The generic type parameter keeps full type safety at each call site.
