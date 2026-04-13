@@ -115,6 +115,70 @@ Test mocks only need to implement the two methods actually called — not the fu
 
 ---
 
+## Apostrophe in `describe()` string breaks esbuild — use double-quotes
+
+A single-quote inside a `describe()` string literal breaks esbuild's string parser with a cryptic parse error. Switch to double-quotes for any describe block whose label contains an apostrophe:
+
+```ts
+// Wrong — esbuild parse error
+describe('Scenario: Research a lead's online activity', () => { ... });
+
+// Right
+describe("Scenario: Research a lead's online activity", () => { ... });
+```
+
+This applies to any string that esbuild processes (describe, it, test labels). The fix is purely cosmetic — use double-quotes whenever the label contains a possessive.
+
+---
+
+## Stateful mocks with call counters for "fails on Nth call" tests
+
+When testing that a batch continues after one item fails, use a closure counter rather than chaining many `.mockResolvedValueOnce()` calls:
+
+```ts
+let updateCallCount = 0;
+const mockUpdate = vi.fn().mockImplementation(async (id, data) => {
+  updateCallCount++;
+  if (updateCallCount === 6) throw new Error('Network error');
+  return { id, ...data };
+});
+```
+
+Cleaner than `mockResolvedValueOnce` × 5 then `mockRejectedValueOnce`. Also works for "every other call fails" or "fails after N calls" patterns.
+
+---
+
+## TypeScript union type narrowing: don't remove "redundant" re-checks after `.find()`
+
+After `.find((b) => b.type === 'text')`, TypeScript still types the result as the full union. A second guard `if (block.type !== 'text') return;` looks logically redundant but is required for TypeScript to narrow the type against SDK union definitions:
+
+```ts
+const textBlock = response.content.find((b) => b.type === 'text');
+if (!textBlock) return;
+if (textBlock.type !== 'text') return; // looks redundant — DO NOT remove
+// TypeScript now knows textBlock is TextBlock, not ContentBlock union
+console.log(textBlock.text);
+```
+
+This pattern is load-bearing. Removing the second guard breaks compilation even though the runtime behavior is identical.
+
+---
+
+## Choose mock totals so approximated counts work out arithmetically
+
+When testing a feature that approximates a count (`remaining = page.total - page.leads.length`), choose mock `total` values such that the arithmetic produces exactly the expected result. Don't use production-realistic numbers if they produce wrong test assertions:
+
+```ts
+// Spec says: "15 enriched, 15 remaining" with batchSize=15
+// Wrong: total=40 → 40-15=25 remaining (test fails)
+// Right: total=30 → 30-15=15 remaining ✓
+mockSearchLeads.mockResolvedValue({ leads: [...15 leads...], total: 30 });
+```
+
+Always verify: `mockTotal - batchSize === expectedRemaining` before writing the assertion.
+
+---
+
 ## Choose test parameter values that can't mask bugs
 
 A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether or not duplicates consume limit slots — because 4 leads processed = 4 leads processed either way. Choose values where the behavior under test produces a *different observable result* than the alternative. E.g., use `limit=3` with 4 leads where 1 is a duplicate: if duplicates consume slots, 2 leads get created; if they don't, 3 do.

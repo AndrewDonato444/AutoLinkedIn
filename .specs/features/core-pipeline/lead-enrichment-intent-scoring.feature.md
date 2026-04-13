@@ -228,4 +228,65 @@ Not enum codes or numeric weights. The founder reads these in the summary and in
 
 ## Learnings
 
-(To be populated after implementation via `/compound`)
+### 1. Apostrophe in `describe()` string breaks esbuild
+
+A single-quote inside a `describe()` string literal (`describe('Research a lead's activity')`) breaks esbuild's string parsing. Use double-quotes for any describe block containing an apostrophe:
+
+```ts
+// Wrong — esbuild parse error
+describe('Scenario: Research a lead's online activity', () => { ... });
+
+// Right
+describe("Scenario: Research a lead's online activity", () => { ... });
+```
+
+### 2. Stateful mocks with call counters for "fails on Nth call" tests
+
+When testing that a batch continues after one item fails, use a closure counter to simulate failure on a specific call:
+
+```ts
+let updateCallCount = 0;
+vi.fn().mockImplementation(async (id, data) => {
+  updateCallCount++;
+  if (updateCallCount === 6) throw new Error('API error');
+  return { id, ...data };
+});
+```
+
+This is cleaner than chaining `.mockResolvedValueOnce()` for 5 successes then a failure.
+
+### 3. `remaining` is an approximation — choose mock `total` carefully
+
+The GojiBerry API has no "unenriched only" filter. `remaining` is approximated as `page.total - page.leads.length`. When writing tests for the batch-with-remaining scenario, choose mock `total` values so the arithmetic produces the exact expected `remaining`:
+
+- Spec says: "15 enriched, 15 remaining" with batchSize=15
+- 40 total - 15 batch = 25 remaining (wrong)
+- Use `total: 30` instead → 30 - 15 = 15 ✓
+
+Always verify: `mockTotal - batchSize === expectedRemaining`.
+
+### 4. Auth errors split by loop position — spec must distinguish phases
+
+The spec originally said "auth fails → outputs message." In reality: `updateLead` AuthError (inside the per-lead loop) is caught, logged, and re-thrown. `searchLeads` AuthError (before the loop) propagates silently. The spec was too high-level and didn't survive drift check.
+
+**Rule**: For any automation with a fetch phase + per-item processing loop, document auth failure behavior separately for each phase. They will have different observable behavior.
+
+### 5. TypeScript union type narrowing: don't remove "redundant" re-checks after `.find()`
+
+After `.find((b) => b.type === 'text')`, TypeScript still infers the union type for the result. A second guard `if (block.type !== 'text') return;` looks redundant but is required for type narrowing against SDK union types. The refactor pass explicitly preserved this — don't remove it.
+
+### 6. Extract `resolvePositiveNumber` when option-override + env + default repeats
+
+When both a function option and an env var can override a numeric default, extract a helper rather than repeating the pattern inline:
+
+```ts
+// Repeated inline (bad):
+const batchSize = options?.batchSize ?? Number(process.env.ENRICHMENT_BATCH_SIZE || 25);
+const minScore = options?.minIntentScore ?? Number(process.env.MIN_INTENT_SCORE || 50);
+
+// Named helper (good):
+function resolvePositiveNumber(optionValue: number | undefined, env: string | undefined, defaultValue: number): number {
+  const n = optionValue ?? Number(env || defaultValue);
+  return Number.isFinite(n) && n > 0 ? n : defaultValue;
+}
+```
