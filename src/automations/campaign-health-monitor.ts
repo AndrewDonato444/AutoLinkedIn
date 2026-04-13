@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { GojiBerryClient } from '../api/gojiberry-client.js';
+import type { Campaign } from '../api/types.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -49,6 +50,8 @@ export interface CampaignHealthReport {
 }
 
 type HealthMonitorClient = Pick<GojiBerryClient, 'getCampaigns'>;
+
+type SnapshotCampaign = HealthSnapshot['campaigns'][number];
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -242,6 +245,109 @@ function buildNoCampaignsText(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Per-campaign analysis
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface CampaignAnalysis {
+  status: CampaignHealthStatus;
+  alerts: CampaignAlert[];
+  recovery: CampaignAlert | null;
+}
+
+function analyzeCampaign(
+  campaign: Campaign,
+  prevData: SnapshotCampaign | null,
+  stallThresholdDays: number,
+  lowReplyRateThreshold: number,
+  minSendsForAnalysis: number,
+): CampaignAnalysis {
+  const metrics = campaign.metrics ?? { sent: 0, opened: 0, replied: 0, converted: 0 };
+  const sent = metrics.sent;
+  const replyRate = sent > 0 ? (metrics.replied / sent) * 100 : 0;
+  const lastSendEstimate = campaign.updatedAt ?? null;
+  const alerts: CampaignAlert[] = [];
+
+  // ── Stall check ──────────────────────────────────────────────────────────
+  let isStalled = false;
+  if (lastSendEstimate) {
+    const days = daysSince(lastSendEstimate);
+    if (days >= stallThresholdDays) {
+      isStalled = true;
+      alerts.push({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        type: 'stalled',
+        severity: 'warning',
+        message: `Campaign '${campaign.name}' appears stalled — no sends in ${days} days. Check if it's paused or out of leads.`,
+      });
+    }
+  }
+
+  // ── Reply rate check ─────────────────────────────────────────────────────
+  if (sent >= minSendsForAnalysis && replyRate < lowReplyRateThreshold) {
+    const roundedRate = round2(replyRate);
+    alerts.push({
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'low_reply_rate',
+      severity: 'warning',
+      message: `Campaign '${campaign.name}' has a ${roundedRate}% reply rate after ${sent} sends — consider revising messages or pausing`,
+    });
+
+    // Declining check: was healthy last run, now below threshold
+    if (
+      prevData &&
+      !prevData.alerts.includes('low_reply_rate') &&
+      prevData.replyRate >= lowReplyRateThreshold
+    ) {
+      alerts.push({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        type: 'declining',
+        severity: 'warning',
+        message: `Reply rate dropped from ${round2(prevData.replyRate)}% to ${roundedRate}%`,
+      });
+    }
+  }
+
+  // ── Recovery check ───────────────────────────────────────────────────────
+  let recovery: CampaignAlert | null = null;
+  if (prevData?.alerts.includes('stalled') && !isStalled) {
+    recovery = {
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      type: 'recovered',
+      severity: 'info',
+      message: `Campaign '${campaign.name}' is active again — previously flagged as stalled`,
+    };
+  }
+
+  // ── Status string ────────────────────────────────────────────────────────
+  let statusStr: string;
+  if (sent < minSendsForAnalysis && !isStalled) {
+    statusStr = `too early to evaluate — ${sent}/${minSendsForAnalysis} sends`;
+  } else if (alerts.length > 0) {
+    statusStr = alerts.map((a) => a.type.replace(/_/g, ' ')).join(', ');
+  } else {
+    statusStr = 'healthy';
+  }
+
+  return {
+    alerts,
+    recovery,
+    status: {
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      status: statusStr,
+      sent,
+      replyRate: round2(replyRate),
+      lastSendEstimate,
+      alerts,
+    },
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Main export
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -299,92 +405,17 @@ export async function checkCampaignHealth(options?: {
   const recoveries: CampaignAlert[] = [];
 
   for (const campaign of activeCampaigns) {
-    const metrics = campaign.metrics ?? { sent: 0, opened: 0, replied: 0, converted: 0 };
-    const sent = metrics.sent;
-    const replyRate = sent > 0 ? (metrics.replied / sent) * 100 : 0;
-    const lastSendEstimate = campaign.updatedAt ?? null;
-    const campaignAlerts: CampaignAlert[] = [];
-
-    // Find previous data for this campaign
     const prevData = previousSnapshot?.campaigns.find((c) => c.id === campaign.id) ?? null;
-
-    // ── Stall check ──────────────────────────────────────────────────────────
-    let isStalled = false;
-    if (lastSendEstimate) {
-      const days = daysSince(lastSendEstimate);
-      if (days >= stallThresholdDays) {
-        isStalled = true;
-        campaignAlerts.push({
-          campaignId: campaign.id,
-          campaignName: campaign.name,
-          type: 'stalled',
-          severity: 'warning',
-          message: `Campaign '${campaign.name}' appears stalled — no sends in ${days} days. Check if it's paused or out of leads.`,
-        });
-      }
-    }
-
-    // ── Reply rate check ─────────────────────────────────────────────────────
-    if (sent >= minSendsForAnalysis && replyRate < lowReplyRateThreshold) {
-      const roundedRate = round2(replyRate);
-      campaignAlerts.push({
-        campaignId: campaign.id,
-        campaignName: campaign.name,
-        type: 'low_reply_rate',
-        severity: 'warning',
-        message: `Campaign '${campaign.name}' has a ${roundedRate}% reply rate after ${sent} sends — consider revising messages or pausing`,
-      });
-
-      // Declining check: was healthy last run, now below threshold
-      if (
-        prevData &&
-        !prevData.alerts.includes('low_reply_rate') &&
-        prevData.replyRate >= lowReplyRateThreshold
-      ) {
-        campaignAlerts.push({
-          campaignId: campaign.id,
-          campaignName: campaign.name,
-          type: 'declining',
-          severity: 'warning',
-          message: `Reply rate dropped from ${round2(prevData.replyRate)}% to ${roundedRate}%`,
-        });
-      }
-    }
-
-    // ── Recovery check ───────────────────────────────────────────────────────
-    if (prevData?.alerts.includes('stalled') && !isStalled) {
-      recoveries.push({
-        campaignId: campaign.id,
-        campaignName: campaign.name,
-        type: 'recovered',
-        severity: 'info',
-        message: `Campaign '${campaign.name}' is active again — previously flagged as stalled`,
-      });
-    }
-
-    allAlerts.push(...campaignAlerts);
-
-    // ── Status string ────────────────────────────────────────────────────────
-    let status: string;
-    if (sent < minSendsForAnalysis && !isStalled) {
-      status = `too early to evaluate — ${sent}/${minSendsForAnalysis} sends`;
-    } else if (campaignAlerts.length > 0) {
-      status = campaignAlerts
-        .map((a) => a.type.replace(/_/g, ' '))
-        .join(', ');
-    } else {
-      status = 'healthy';
-    }
-
-    campaignStatuses.push({
-      campaignId: campaign.id,
-      campaignName: campaign.name,
-      status,
-      sent,
-      replyRate: round2(replyRate),
-      lastSendEstimate,
-      alerts: campaignAlerts,
-    });
+    const { status, alerts, recovery } = analyzeCampaign(
+      campaign,
+      prevData,
+      stallThresholdDays,
+      lowReplyRateThreshold,
+      minSendsForAnalysis,
+    );
+    campaignStatuses.push(status);
+    allAlerts.push(...alerts);
+    if (recovery) recoveries.push(recovery);
   }
 
   // Build snapshot
