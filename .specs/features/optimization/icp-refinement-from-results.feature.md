@@ -280,4 +280,24 @@ With 1 campaign, any pattern could be noise. Default minimum of 2 completed camp
 
 ## Learnings
 
-(To be filled after implementation)
+### `intentType: 'replied'` as reply-status proxy — not a literal API field
+
+The spec described "fetches leads who replied" as if there's a per-lead reply-status filter. There isn't. The GojiBerry API exposes `intentType` as a string filter on `searchLeads`. Using `intentType: 'replied'` is the pragmatic workaround. Non-replied leads are derived: fetch all leads, subtract replied IDs via a Set.
+
+The two-call pattern runs in parallel:
+```ts
+const [repliedResult, allLeadsResult] = await Promise.all([
+  client.searchLeads({ intentType: 'replied' }),
+  client.searchLeads(),
+]);
+const repliedIds = new Set(repliedResult.leads.map((l) => l.id));
+const nonReplied = allLeadsResult.leads.filter((l) => !repliedIds.has(l.id));
+```
+
+### `proposedIcp: null` when no high-confidence suggestions exist
+
+Gate the `proposedIcp` field to `null` when the LLM returns only low-confidence suggestions. This prevents the founder from acting on noise. Test scenario: all traits have `sampleSize < 10` → `proposedIcp === null`. Without this gate, a small sample could produce a "proposed" ICP that looks authoritative but isn't.
+
+### Dependency section drifted — `analyzeCampaignPerformance` was never used
+
+The spec's Dependencies section listed `analyzeCampaignPerformance()` from `campaign-performance-analytics.ts` as a dependency. The implementation never imported it — metrics were computed directly from `c.metrics` on the campaign response, which was simpler and didn't need the analytics layer. The drift check caught this and removed the false dependency. Root cause: spec written before implementation anticipated reuse of an existing helper; the simpler path made it unnecessary. Verify the Dependencies section during every drift check — it's as prone to pre-implementation optimism as the Data Flow section.

@@ -15,9 +15,9 @@
 | 1: Core Pipeline | 4 | 3 | ⏸️ |
 | 2: Intelligence Layer | 4 | 3 | ⏸️ |
 | 3: Automation & Scheduling | 4 | 3 | 🔄 |
-| 4: Optimization Loop | 3 | 0 | ⬜ |
+| 4: Optimization Loop | 3 | 1 | 🔄 |
 
-**Overall: 9/15 (60%) — Last updated: 2026-04-13**
+**Overall: 10/15 (67%) — Last updated: 2026-04-13**
 
 ---
 
@@ -90,7 +90,7 @@ Make it smarter over time. Each campaign's results improve the next one.
 
 | # | Feature | Source | Complexity | Deps | Status |
 |---|---------|--------|------------|------|--------|
-| 30 | ICP refinement from results | vision | M | 11,2 | ⬜ |
+| 30 | ICP refinement from results | vision | M | 11,2 | ✅ |
 | 31 | Message style optimization | vision | M | 11,4 | ⬜ |
 | 32 | Lead quality feedback loop | vision | L | 11,3 | ⬜ |
 

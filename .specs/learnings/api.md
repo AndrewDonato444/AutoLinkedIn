@@ -276,6 +276,23 @@ This also makes the directory listing immediately human-readable and enables glo
 
 ---
 
+## `intentType: 'replied'` as reply-status proxy + set-diff for segmentation
+
+When an API's filter supports `intentType` as a string but has no per-lead reply-status field, use `intentType: 'replied'` as a proxy filter. Derive the complementary segment (non-replied) by fetching all leads and subtracting the replied IDs via a `Set`:
+
+```ts
+const [repliedResult, allLeadsResult] = await Promise.all([
+  client.searchLeads({ intentType: 'replied' }),
+  client.searchLeads(),
+]);
+const repliedIds = new Set(repliedResult.leads.map((l) => l.id));
+const nonReplied = allLeadsResult.leads.filter((l) => !repliedIds.has(l.id));
+```
+
+The two calls run in parallel (`Promise.all`). The Set-diff avoids a nested loop. Apply this pattern whenever the API exposes one segment but not its complement — fetch both, subtract.
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:
