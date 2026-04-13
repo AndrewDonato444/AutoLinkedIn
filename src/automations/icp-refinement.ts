@@ -216,6 +216,25 @@ function buildReportText(
   return lines.join('\n');
 }
 
+function makeInsufficientDataReport(
+  currentIcp: string,
+  campaignCount: number,
+  totalSent: number,
+  message: string,
+): IcpRefinementReport {
+  return {
+    currentIcp,
+    campaignCount,
+    totalSent,
+    totalReplied: 0,
+    overallReplyRate: 0,
+    traits: { working: [], notWorking: [], inconclusive: [], watch: [] },
+    suggestions: [],
+    proposedIcp: null,
+    reportText: message,
+  };
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Real Anthropic profile analysis
 // ──────────────────────────────────────────────────────────────────────────────
@@ -348,17 +367,7 @@ export async function refineIcp(options?: {
     const message =
       `Not enough campaign data yet — need at least ${minCampaigns} completed campaigns ` +
       `with replies to suggest ICP refinements. You have ${completedCampaigns.length}.`;
-    return {
-      currentIcp: icpDescription,
-      campaignCount: completedCampaigns.length,
-      totalSent: 0,
-      totalReplied: 0,
-      overallReplyRate: 0,
-      traits: { working: [], notWorking: [], inconclusive: [], watch: [] },
-      suggestions: [],
-      proposedIcp: null,
-      reportText: message,
-    };
+    return makeInsufficientDataReport(icpDescription, completedCampaigns.length, 0, message);
   }
 
   // Step 4: Compute aggregate stats from campaign metrics
@@ -376,17 +385,7 @@ export async function refineIcp(options?: {
     const message =
       `No replies yet across ${completedCampaigns.length} campaigns — can't refine what ` +
       `hasn't been validated. Focus on improving messages first (see /build-next for message style optimization).`;
-    return {
-      currentIcp: icpDescription,
-      campaignCount: completedCampaigns.length,
-      totalSent,
-      totalReplied: 0,
-      overallReplyRate: 0,
-      traits: { working: [], notWorking: [], inconclusive: [], watch: [] },
-      suggestions: [],
-      proposedIcp: null,
-      reportText: message,
-    };
+    return makeInsufficientDataReport(icpDescription, completedCampaigns.length, totalSent, message);
   }
 
   // Step 6: Fetch lead profiles for analysis
