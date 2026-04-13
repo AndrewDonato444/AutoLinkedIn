@@ -35,22 +35,13 @@ export interface GenerateMessagesOptions {
   _client?: MessageGenClient;
 }
 
-export async function defaultMessageGenerator(
+function buildMessagePrompt(
   lead: Lead,
   icpDescription: string,
   options: { tone: string; maxLength: number },
-): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new ConfigError(
-      'Missing ANTHROPIC_API_KEY in .env.local — required for message generation',
-    );
-  }
-
-  const anthropic = new Anthropic({ apiKey });
-
+): string {
   const signals = (lead.intentSignals ?? []).join('\n- ');
-  const prompt = `Write a personalized LinkedIn connection request message for this person.
+  return `Write a personalized LinkedIn connection request message for this person.
 
 Person: ${lead.firstName} ${lead.lastName}
 Job Title: ${lead.jobTitle ?? 'Unknown'}
@@ -69,6 +60,29 @@ Requirements:
 - Do NOT use: "I noticed we're both in [industry]", "I came across your profile", or other template phrases
 - Keep it under ${options.maxLength} characters (hard limit — do not exceed)
 - Write only the message text, nothing else`;
+}
+
+function enforceMaxLength(message: string, maxLength: number): string {
+  if (message.length <= maxLength) return message;
+  const truncated = message.slice(0, maxLength);
+  const lastPeriod = truncated.lastIndexOf('.');
+  return lastPeriod > maxLength * 0.5 ? message.slice(0, lastPeriod + 1) : truncated;
+}
+
+export async function defaultMessageGenerator(
+  lead: Lead,
+  icpDescription: string,
+  options: { tone: string; maxLength: number },
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new ConfigError(
+      'Missing ANTHROPIC_API_KEY in .env.local — required for message generation',
+    );
+  }
+
+  const anthropic = new Anthropic({ apiKey });
+  const prompt = buildMessagePrompt(lead, icpDescription, options);
 
   const response = await anthropic.messages.create({
     model: ANTHROPIC_MODEL,
@@ -81,20 +95,7 @@ Requirements:
     throw new Error('Anthropic returned no text content');
   }
 
-  let message = textBlock.text.trim();
-
-  // Safety: enforce maxLength by truncating at last complete sentence
-  if (message.length > options.maxLength) {
-    const truncated = message.slice(0, options.maxLength);
-    const lastPeriod = truncated.lastIndexOf('.');
-    if (lastPeriod > options.maxLength * 0.5) {
-      message = message.slice(0, lastPeriod + 1);
-    } else {
-      message = truncated;
-    }
-  }
-
-  return message;
+  return enforceMaxLength(textBlock.text.trim(), options.maxLength);
 }
 
 function outputMessageSummary(result: MessageGenerationResult): void {
