@@ -8,6 +8,9 @@ import type { DiscoveredLead, DiscoveryResult } from './types.js';
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
 const DEFAULT_LIMIT = 50;
+const ANTHROPIC_MODEL = 'claude-opus-4-6';
+const WEB_SEARCH_MAX_TOKENS = 8096;
+const SUMMARY_SEPARATOR_WIDTH = 80;
 
 export type WebSearchFn = (icpDescription: string) => Promise<DiscoveredLead[]>;
 
@@ -33,8 +36,8 @@ export async function defaultWebSearch(icpDescription: string): Promise<Discover
   const anthropic = new Anthropic({ apiKey });
 
   const response = await anthropic.messages.create({
-    model: 'claude-opus-4-6',
-    max_tokens: 8096,
+    model: ANTHROPIC_MODEL,
+    max_tokens: WEB_SEARCH_MAX_TOKENS,
     // web_search_20250305 is not in the SDK types yet — cast required
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
@@ -74,6 +77,17 @@ Find as many real matching people as you can. Rank them from best ICP fit to wea
   }
 }
 
+function buildCreateLeadInput(lead: DiscoveredLead) {
+  return {
+    firstName: lead.firstName,
+    lastName: lead.lastName,
+    profileUrl: lead.profileUrl,
+    ...(lead.company !== undefined && { company: lead.company }),
+    ...(lead.jobTitle !== undefined && { jobTitle: lead.jobTitle }),
+    ...(lead.location !== undefined && { location: lead.location }),
+  };
+}
+
 function outputSummary(result: DiscoveryResult, limit: number): void {
   const { created, failed, limitExceeded } = result;
 
@@ -93,7 +107,7 @@ function outputSummary(result: DiscoveryResult, limit: number): void {
 
   if (created.length > 0) {
     console.log('\nLead Summary:');
-    console.log('─'.repeat(80));
+    console.log('─'.repeat(SUMMARY_SEPARATOR_WIDTH));
     for (const lead of created) {
       const parts: string[] = [`${lead.firstName} ${lead.lastName}`];
       if (lead.company) parts.push(lead.company);
@@ -101,7 +115,7 @@ function outputSummary(result: DiscoveryResult, limit: number): void {
       parts.push(lead.profileUrl);
       console.log(parts.join(' | '));
     }
-    console.log('─'.repeat(80));
+    console.log('─'.repeat(SUMMARY_SEPARATOR_WIDTH));
   }
 }
 
@@ -150,14 +164,7 @@ export async function discoverLeads(options: DiscoverLeadsOptions = {}): Promise
       }
 
       // Create lead
-      await client.createLead({
-        firstName: lead.firstName,
-        lastName: lead.lastName,
-        profileUrl: lead.profileUrl,
-        ...(lead.company !== undefined && { company: lead.company }),
-        ...(lead.jobTitle !== undefined && { jobTitle: lead.jobTitle }),
-        ...(lead.location !== undefined && { location: lead.location }),
-      });
+      await client.createLead(buildCreateLeadInput(lead));
 
       result.created.push(lead);
     } catch (err: unknown) {
