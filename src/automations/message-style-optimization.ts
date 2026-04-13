@@ -267,6 +267,17 @@ function buildReportText(report: Omit<MessageStyleReport, 'reportText'>): string
 // Real Anthropic pattern analysis
 // ──────────────────────────────────────────────────────────────────────────────
 
+const EMPTY_ANALYSIS = {
+  hookStyles: [] as HookStyleAnalysis[],
+  lengthBuckets: [] as LengthBucket[],
+  avgLengthReplied: 0,
+  avgLengthNoReply: 0,
+  signalEffectiveness: [] as SignalEffectiveness[],
+  phrasesToAvoid: [] as PhraseAnalysis[],
+  patternsToWatch: [] as (HookStyleAnalysis | SignalEffectiveness)[],
+  recommendations: [] as StyleRecommendation[],
+};
+
 export async function defaultAnalyzePatterns(
   repliedMessages: { lead: Lead; message: string }[],
   nonRepliedMessages: { lead: Lead; message: string }[],
@@ -366,46 +377,15 @@ Return ONLY a valid JSON object with this exact structure (no other text):
   });
 
   const textBlock = response.content.find((b) => b.type === 'text');
-  if (!textBlock || textBlock.type !== 'text') {
-    return {
-      hookStyles: [],
-      lengthBuckets: [],
-      avgLengthReplied: 0,
-      avgLengthNoReply: 0,
-      signalEffectiveness: [],
-      phrasesToAvoid: [],
-      patternsToWatch: [],
-      recommendations: [],
-    };
-  }
+  if (!textBlock) return EMPTY_ANALYSIS;
 
   const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return {
-      hookStyles: [],
-      lengthBuckets: [],
-      avgLengthReplied: 0,
-      avgLengthNoReply: 0,
-      signalEffectiveness: [],
-      phrasesToAvoid: [],
-      patternsToWatch: [],
-      recommendations: [],
-    };
-  }
+  if (!jsonMatch) return EMPTY_ANALYSIS;
 
   try {
     return JSON.parse(jsonMatch[0]);
   } catch {
-    return {
-      hookStyles: [],
-      lengthBuckets: [],
-      avgLengthReplied: 0,
-      avgLengthNoReply: 0,
-      signalEffectiveness: [],
-      phrasesToAvoid: [],
-      patternsToWatch: [],
-      recommendations: [],
-    };
+    return EMPTY_ANALYSIS;
   }
 }
 
