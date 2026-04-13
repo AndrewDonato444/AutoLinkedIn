@@ -264,6 +264,46 @@ A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether 
 
 ---
 
+## Filter-aware mock implementations for call-argument isolation
+
+When the same mock method is called multiple times with *different* filter arguments (e.g., once without `scoreFrom`, once with it), a naive mock that returns the same data for all calls makes scenario isolation impossible. Implement the mock with real filter logic:
+
+```ts
+function makeSearchLeadsMock(leads: Lead[]) {
+  return vi.fn().mockImplementation(async (filters: Record<string, unknown> = {}) => {
+    let filtered = leads;
+    if (filters.scoreFrom != null) {
+      filtered = filtered.filter((l) => (l.fitScore ?? 0) >= (filters.scoreFrom as number));
+    }
+    if (filters.scoreTo != null) {
+      filtered = filtered.filter((l) => (l.fitScore ?? 0) <= (filters.scoreTo as number));
+    }
+    return paginatedWith(filtered, filtered.length);
+  });
+}
+```
+
+With this, a test that passes leads scored at 40 and 80 can set `scoreFrom: 50` to get a filtered result — making the "no warm leads" and "has warm leads" scenarios independently testable without separate describe blocks. Required whenever the same mock method is called with different filter parameters within a single function under test.
+
+---
+
+## Argument-conditional `mockImplementation` for partial failure tests
+
+When testing partial failure (one API call fails, another succeeds within the same function), use a `mockImplementation` that inspects call arguments rather than a call counter:
+
+```ts
+searchLeads: vi.fn().mockImplementation(async (filters: Record<string, unknown> = {}) => {
+  if (filters.scoreFrom != null) {
+    throw new Error('Network error'); // simulates warm-leads call failing
+  }
+  return paginatedWith(allLeads); // pipeline overview call succeeds
+}),
+```
+
+This is more precise than a call counter when the two calls differ by *argument* (not by call order), and it makes the test's intent obvious: "fail only the filtered call." Pair with `AuthError` re-throw validation by adding a separate test that throws `AuthError` on the same conditional.
+
+---
+
 ## Real temp dirs via `os.mkdtempSync` for filesystem injection tests
 
 When a function accepts a `_snapshotDir` (or similar path injection point), test it with a real temp directory rather than mocking `fs`. This avoids the complexity of mocking `fs.readdirSync`, `fs.readFileSync`, `fs.writeFileSync`, etc., and tests actual filesystem behavior:

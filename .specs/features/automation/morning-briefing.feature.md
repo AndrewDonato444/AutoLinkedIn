@@ -231,4 +231,18 @@ The `_snapshotDir` option in the function signature allows tests to use a temp d
 
 ## Learnings
 
-(To be filled after implementation)
+### `WarmLead` strips `personalizedMessages` — requires a separate `searchLeads` call
+
+`buildWarmLeadList` maps API results through `toWarmLead`, which drops `personalizedMessages`. To check whether warm leads have messages ready, a second `client.searchLeads({ scoreFrom: minScore })` call is needed directly. This was extracted into `buildMessagesMap(client, minScore)` to keep the orchestration function readable. When composing with existing builders that return typed DTOs, check whether the DTO type carries every field you need before assuming one call is enough.
+
+### Filter-aware mocks are required for scenario isolation
+
+The `makeSearchLeadsMock` helper applies `scoreFrom`/`scoreTo` filters in its mock implementation (matching real API behavior). Without this, a mock that ignores filter arguments would return the same leads for both the `buildWarmLeadList` call (no `scoreFrom`) and the `buildMessagesMap` call (with `scoreFrom`). This made "no warm leads" scenarios impossible to isolate from "has warm leads" scenarios. Filter-aware mocks are essential whenever the same mock method is called with different filter arguments within one function under test.
+
+### Partial failure scope: wrap only the failable section, re-throw `AuthError`
+
+Partial failure tolerance is scoped to the warm leads section only — the pipeline overview is not wrapped in try/catch because pipeline data is always valid and worth saving. Inside the warm leads catch, `AuthError` is re-thrown immediately (the caller must handle auth failures). Non-auth errors produce an error string that renders in the briefing text instead of crashing. The snapshot is saved even on warm-leads failure because the pipeline data it captures is still valid.
+
+### Spec scenario descriptions can be more aspirational than the output format section
+
+The "Briefing highlights overnight changes" scenario described per-lead hot-tier identification, while the Output Format section showed only a count (`{newly_warm} crossed into warm`). When implemented, the simpler count from the output format was used. The output format template is more grounded than the scenario narrative because it was written with the actual data model in mind. When the two conflict, trust the template — and reconcile the scenario wording in the post-build drift check.

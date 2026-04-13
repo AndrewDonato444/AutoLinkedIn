@@ -73,6 +73,16 @@ Without the `day === 1 ? 7` guard, a report run on Monday would say "Next report
 
 ---
 
+## When spec scenario descriptions conflict with the output format, trust the format
+
+A spec can have both a Gherkin scenario description ("calls out any leads that crossed into 'Hot' tier") and an Output Format template (`{newly_warm} crossed into warm` — just a count). These are written at different times and can diverge when the pre-implementation scenario is more aspirational than the implementation-time format.
+
+When the two conflict, the output format section is more grounded — it was written with the actual data model and API response in mind. The scenario description tends to be aspirational and may describe intent that was later simplified. During drift check, reconcile the scenario wording to match the format (not the other way around).
+
+Root cause pattern: spec written before implementation → scenario description is aspirational → implementation follows the format → drift check finds the mismatch. Plan for a post-build wording reconciliation of scenario descriptions against output templates on every feature.
+
+---
+
 ## Spec output format templates: mark placeholders as "resolved in code"
 
 Output format sections in specs use `{placeholder}` tokens that can be interpreted multiple ways. The `({change})` secondary parenthetical in a template may mean "show the absolute number" in one reading and "not needed" in the code. After implementation, reconcile the template against actual output and remove or update any tokens that resolved differently than written.
