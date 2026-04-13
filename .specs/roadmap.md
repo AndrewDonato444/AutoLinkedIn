@@ -13,11 +13,11 @@
 | Phase | Features | Done | Status |
 |-------|----------|------|--------|
 | 1: Core Pipeline | 4 | 3 | ⏸️ |
-| 2: Intelligence Layer | 4 | 1 | 🔄 |
+| 2: Intelligence Layer | 4 | 2 | 🔄 |
 | 3: Automation & Scheduling | 4 | 0 | ⬜ |
 | 4: Optimization Loop | 3 | 0 | ⬜ |
 
-**Overall: 4/15 (27%) — Last updated: 2026-04-13 — Feature 11 next**
+**Overall: 5/15 (33%) — Last updated: 2026-04-13 — Feature 12 next**
 
 ---
 
@@ -49,7 +49,7 @@ Understand what's working and surface the right information at the right time.
 | # | Feature | Source | Complexity | Deps | Status |
 |---|---------|--------|------------|------|--------|
 | 10 | Pipeline overview report | vision | S | 1 | ✅ |
-| 11 | Campaign performance analytics | vision | M | 1 | ⬜ |
+| 11 | Campaign performance analytics | vision | M | 1 | ✅ |
 | 12 | Intent type breakdown | vision | S | 1 | ⬜ |
 | 13 | Warm lead list builder | vision | M | 1,3 | ⬜ |
 

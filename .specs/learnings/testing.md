@@ -208,6 +208,26 @@ The `Partial<{ method: () => Promise<T> }>` override shape means each test only 
 
 ---
 
+## `Pick<>` on the function signature eliminates mock cast entirely
+
+When the source function accepts `Pick<ClientType, 'method'>` instead of the full `ClientType`, a mock object that only implements those methods satisfies the type structurally — no `as unknown as ClientType` cast anywhere:
+
+```ts
+// Source:
+type AnalyticsClient = Pick<GojiBerryClient, 'getCampaigns'>;
+export async function analyzeCampaignPerformance(options?: {
+  _client?: AnalyticsClient; // ← Pick, not GojiBerryClient
+}): Promise<CampaignReport> { ... }
+
+// Test — no cast needed:
+const client = { getCampaigns: vi.fn().mockResolvedValue([...]) };
+await analyzeCampaignPerformance({ _client: client }); // ✓ compiles
+```
+
+Use `Pick<>` on the function parameter type (not just on the mock type) whenever you want truly cast-free injection. Extend to full `GojiBerryClient` only when the function calls many methods and the cast is less painful than the type.
+
+---
+
 ## Choose test parameter values that can't mask bugs
 
 A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether or not duplicates consume limit slots — because 4 leads processed = 4 leads processed either way. Choose values where the behavior under test produces a *different observable result* than the alternative. E.g., use `limit=3` with 4 leads where 1 is a duplicate: if duplicates consume slots, 2 leads get created; if they don't, 3 do.

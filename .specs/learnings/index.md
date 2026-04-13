@@ -9,6 +9,20 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Campaign Performance Analytics** — the most hard-won lessons from this session:
+
+1. **Sort for display ≠ sort for analysis** (spec learnings): Always preserve original API order for trend analysis. Passing the reply-rate-sorted array to `computeTrend` makes "latest" always the worst performer, producing a false "declining" signal. Filter `completedCampaigns` from pre-sort `allMetrics`, then pass both arrays separately.
+
+2. **`needsAttention` null when ≤1 with sends**: With exactly one campaign that has sends, it's the top performer — assigning it to `needsAttention` too would surface contradictory labels. Guard with `withSends.length > 1`.
+
+3. **`Pick<>` on function parameter eliminates mock casts** (testing.md): Accepting `Pick<GojiBerryClient, 'getCampaigns'>` instead of the full client means any object implementing only that method satisfies the type. Zero `as unknown as Client` casts needed in tests.
+
+4. **Zero-send campaigns: include in display, exclude from metrics**: Draft campaigns appear in `byStatus` groups as "no data yet" but are excluded from averages, rankings, and trend via a `withSends` filter.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Pipeline Overview Report** — the most hard-won lessons from this session:
 
 1. **`Promise.all()` for parallel API fan-out** (api.md): When N endpoints are independent, fetch them in one `Promise.all()` and destructure the tuple. Sequential awaits are N× slower for no benefit.
