@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sdd.overnight-autonomous</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <!-- UPDATE THIS PATH to your project location -->
+        <string>/Users/adrian/Documents/personal-repos/sdd-auto/scripts/overnight-autonomous.sh</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <!-- UPDATE THIS PATH to your project location -->
+    <string>/Users/adrian/Documents/personal-repos/sdd-auto</string>
+    
+    <!-- Run at 11:00 PM every day (after nightly-review) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>23</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    
+    <key>StandardOutPath</key>
+    <!-- UPDATE THIS PATH to your project location -->
+    <string>/Users/adrian/Documents/personal-repos/sdd-auto/logs/overnight-autonomous.log</string>
+    
+    <key>StandardErrorPath</key>
+    <!-- UPDATE THIS PATH to your project location -->
+    <string>/Users/adrian/Documents/personal-repos/sdd-auto/logs/overnight-autonomous.log</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <!-- UPDATE THIS to your home directory -->
+        <string>/Users/adrian</string>
+    </dict>
+</dict>
+</plist>
