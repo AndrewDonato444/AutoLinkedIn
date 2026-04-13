@@ -228,6 +228,80 @@ const eligible = page.leads
 
 ---
 
+## Full-function injection for pipeline orchestrators (not sub-dependency injection)
+
+When an orchestrator composes sibling automations, inject the sibling functions themselves — not their sub-dependencies (client, webSearch, etc.):
+
+```ts
+// Good — inject the full sibling function
+export async function runDailyLeadScan(options?: {
+  _discoverLeads?: typeof discoverLeads;
+  _enrichLeads?: typeof enrichLeads;
+  _generateMessages?: typeof generateMessages;
+})
+
+// Bad — re-inject sub-dependencies the sibling already manages
+export async function runDailyLeadScan(options?: {
+  _client?: GojiBerryClient;
+  _webSearch?: WebSearchFn;
+})
+```
+
+The orchestrator is a pipeline coordinator, not a reimplementation of its stages. Full-function injection keeps each stage's internal wiring internal, makes the orchestrator's integration contract explicit (it calls these three functions in order), and reduces test setup to three `vi.fn()` mocks regardless of how complex each stage is internally.
+
+---
+
+## Extract `abort()` async closure for repeated async abort paths
+
+When a function has multiple hard-stop error paths that each need to: (1) build a result object, (2) save a file, (3) return — extract an `async abort()` closure inside the function that captures shared state:
+
+```ts
+export async function runDailyLeadScan(options) {
+  const date = today();
+  const startTime = Date.now();
+  const scanLogDir = options._scanLogDir ?? DEFAULT_SCAN_LOG_DIR;
+
+  const abort = async (reason: string, nextAction: string): Promise<DailyScanResult> => {
+    const result = { date, discovery: null, enrichment: null, ..., nextAction, summaryText: reason };
+    await saveScanLog(result, scanLogDir);
+    return result;
+  };
+
+  // Now each abort site is one line:
+  if (!icpDescription) return abort(ICP_ABORT_MSG, NEXT_ACTION_ICP);
+  if (isAuthError(discoveryErr)) return abort(AUTH_ABORT_MSG, NEXT_ACTION_AUTH);
+}
+```
+
+The refactor eliminated ~60 lines (4 abort sites × ~15 lines each of repeated result construction + file save + return). The closure captures `date`, `startTime`, and `scanLogDir` from the outer scope — no parameters to thread through each call. Only use this pattern when the abort paths differ only in string arguments; sites with different `nextAction` or structurally different result objects can't use it without adding complexity that outweighs the savings.
+
+---
+
+## Destructure-to-exclude for machine-readable log persistence
+
+To persist a result object as machine-readable JSON while omitting a human-readable field (`summaryText`), use destructuring rather than mutation or `JSON.stringify(result, replacer)`:
+
+```ts
+const { summaryText: _summaryText, ...logData } = result;
+fs.writeFileSync(logPath, JSON.stringify(logData, null, 2));
+```
+
+The `_summaryText` binding signals the field is intentionally discarded (same `_` prefix convention as test-only params). The original `result` object remains intact for the function's return value. Apply this wherever the persisted format intentionally differs from the in-memory structure.
+
+---
+
+## Aspirational spec clauses for fully-delegated behaviors must be removed
+
+When a spec scenario includes a clause about an observable side effect of a fully-delegated concern (e.g., "the summary notes if rate limiting caused delays"), and the implementation delegates that concern entirely to a dependency with no exposed metadata, the spec clause is wrong — not the code.
+
+Root cause: the spec was written before the dependency's API surface was known. The clause described aspirational behavior ("I'd like to surface this") that turned out to be impossible without changes to the dependency.
+
+Fix during drift check: remove the clause entirely. Don't add stub code just to satisfy the spec. The correct state is: "the underlying client handles rate limiting transparently; callers see no delay metadata."
+
+**Marker for future specs:** Any scenario clause that says "the summary notes..." about a concern handled by a dependency is a candidate for aspirational drift. Flag it during spec writing with a note: "Only include if the dependency exposes this data."
+
+---
+
 ## `status` field value and display format can intentionally differ — document both
 
 A data model's `status` field (machine-readable, for serialization and logging) can legitimately differ from the display string shown to the user. Example:

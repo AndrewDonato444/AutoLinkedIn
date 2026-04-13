@@ -10,6 +10,24 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Daily Lead Scan Automation** — the most hard-won lessons from this session:
+
+1. **Full-function injection for orchestrators** (general.md): Inject `_discoverLeads`, `_enrichLeads`, `_generateMessages` — not sub-dependencies. Keeps the orchestrator as a pure coordinator; three mocks cover 40 tests.
+
+2. **`abort()` closure for repeated async abort paths** (general.md): 4 hard-stop paths each needed build+save+return. Inner closure capturing shared state cut 60 lines (481→442). Only applies when abort paths differ only in string arguments.
+
+3. **Destructure-to-exclude for log serialization** (general.md): `{ summaryText: _summaryText, ...logData }` strips human-readable field before writing JSON without mutation.
+
+4. **Aspirational spec clauses for delegated concerns** (general.md): "The summary notes if rate limiting caused delays" was never implementable — the underlying client exposes no timing metadata. Remove such clauses during drift check; don't add stub code to satisfy aspirational spec text.
+
+5. **`Parameters<typeof fn>[0]` for pass-through options typing** (testing.md): Derives the type from the sibling function's signature without importing or duplicating its interface.
+
+6. **String assertions must match exact output format** (testing.md): Test expected `'5 enriched'`, actual was `'5 leads enriched, 3 failed'`. Always verify the exact prose string against the source before writing the assertion.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Personalized Message Generation** — the most hard-won lessons from this session:
 
 1. **`remaining` from filtered eligibles, not `page.total`** (api.md): When client-side filtering after a large fetch, `remaining = eligible.length - batchSize`. Using `page.total` inflates the count with already-messaged and signal-less leads, misleading the user about how many runs are left.

@@ -259,3 +259,21 @@ The `_scanLogDir` option in the function signature allows tests to use a temp di
 5. **Scan runs before the morning briefing**: Default cron is 7am, morning briefing is 8am. The briefing picks up overnight scan results and presents them. This ordering is intentional but not enforced — if a user configures different schedules, the briefing still works (it just might not include the latest scan).
 
 6. **Scan logs are separate from briefing snapshots**: Scan logs capture the full pipeline execution (discovery → enrichment → messages). Briefing snapshots capture the pipeline state at briefing time. They serve different purposes and are stored separately.
+
+## Learnings
+
+Hard-won lessons from implementing this feature (2026-04-13):
+
+1. **Full-function injection, not sub-dependency injection**: Inject `_discoverLeads`, `_enrichLeads`, `_generateMessages` (the full sibling functions) — not `_client` or `_webSearch`. The orchestrator is a pipeline coordinator; each stage manages its own wiring. Three `vi.fn()` mocks cover 40 tests, regardless of each stage's internal complexity.
+
+2. **Extract `abort()` closure for repeated async abort paths**: Four hard-stop paths each needed: build result object + save scan log + return. Extracted an inner `async abort(reason, nextAction)` closure capturing `date`, `startTime`, and `scanLogDir`. Eliminated ~60 lines (481→442) without losing any logic. Only works when the abort sites differ only in string arguments.
+
+3. **Destructure-to-exclude for log serialization**: `const { summaryText: _summaryText, ...logData } = result` strips the human-readable field before writing JSON without mutating the result. The `_` prefix signals intentional discard (same convention as test-only params).
+
+4. **Extract `AUTH_ABORT_MSG` constant when a string is duplicated 3× verbatim**: The auth failure message appeared in three separate catch blocks. Named constant catches future edits that miss one instance.
+
+5. **`Parameters<typeof fn>[0]` to type pass-through options**: `genOptions: Parameters<typeof generateMessages>[0]` derives the type from the sibling function without importing or duplicating its interface. Stays correct when the sibling's options change.
+
+6. **Aspirational rate-limit spec clause removed**: "The summary notes if rate limiting caused delays" was in the spec but never implementable — the API client handles rate limiting transparently with no exposed timing metadata. Drift check caught and removed it. Any spec clause starting "the summary notes..." about a delegated concern is a candidate for aspirational drift.
+
+7. **Test assertion must match the exact output string**: Test expected `'5 enriched'` but actual was `'5 leads enriched, 3 failed'`. Write the assertion after seeing the real output — prose summary strings change more often than structured data.

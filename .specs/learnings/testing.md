@@ -409,3 +409,26 @@ await analyzeLeadQuality({ _client: clientWith25Leads, minLeads: 25 });
 ```
 
 Symptom: tests that should exercise analysis logic pass when they should fail (the early-return report has empty arrays, so assertions like `toHaveLength(0)` pass vacuously). When debugging, check the fixture lead count against all quantity thresholds in the function.
+
+---
+
+## `Parameters<typeof fn>[0]` to type injected options without duplicating interfaces
+
+When an orchestrator function calls a sibling automation and passes options through, avoid duplicating the sibling's options interface. Use `Parameters<typeof fn>[0]` to derive the type from the function signature:
+
+```ts
+// Instead of duplicating GenerateMessagesOptions:
+type GenOptions = Parameters<typeof generateMessages>[0];
+const genOptions: GenOptions = { tone: options.messageTone, maxLength: options.messageMaxLength };
+await _generateMessages(genOptions);
+```
+
+This keeps the orchestrator type-correct even when the sibling's options change. No interface import, no duplication — TypeScript derives the type from the function itself.
+
+---
+
+## String output assertions: test against the exact output string, not an approximation
+
+When asserting on human-readable summary strings, the test must match the exact format the function produces — not a plausible approximation. A test expected `'5 enriched'` but the actual output was `'5 leads enriched, 3 failed'`. The assertion passed a similar-looking string check and the mismatch went undetected until a subsequent failure exposed it.
+
+Fix: assert with `toContain('5 leads enriched, 3 failed')` or check the full string. When writing the test assertion, look at the actual output string in the source (or run the function once) before hardcoding the expected value. Prose output strings change more often than structured data — treat them like snapshot tests.
