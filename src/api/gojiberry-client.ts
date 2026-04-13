@@ -30,6 +30,9 @@ function sleep(ms: number): Promise<void> {
 }
 
 export class GojiBerryClient {
+  private static readonly MAX_RETRIES = 3;
+  private static readonly RETRY_BASE_DELAY_MS = 1_000;
+
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
@@ -60,7 +63,7 @@ export class GojiBerryClient {
     method: string,
     urlPath: string,
     body?: unknown,
-    retriesLeft = 3,
+    retriesLeft = GojiBerryClient.MAX_RETRIES,
   ): Promise<T> {
     await this.rateLimiter.throttle();
 
@@ -95,8 +98,8 @@ export class GojiBerryClient {
 
     if (response.status >= 500 && response.status <= 503) {
       if (retriesLeft > 0) {
-        const attempt = 3 - retriesLeft; // 0, 1, 2
-        const delayMs = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+        const attempt = GojiBerryClient.MAX_RETRIES - retriesLeft; // 0, 1, 2
+        const delayMs = GojiBerryClient.RETRY_BASE_DELAY_MS * Math.pow(2, attempt); // 1s, 2s, 4s
         await sleep(delayMs);
         return this.request<T>(method, urlPath, body, retriesLeft - 1);
       }
@@ -108,6 +111,18 @@ export class GojiBerryClient {
     }
 
     return response.json() as Promise<T>;
+  }
+
+  private async getById<T>(urlPath: string, resourceName: string, id: string): Promise<T> {
+    try {
+      return await this.request<T>('GET', `${urlPath}/${id}`);
+    } catch (err) {
+      if (err instanceof Http404Error) {
+        console.log(`${resourceName} ${id} not found in GojiBerry`);
+        throw new NotFoundError(resourceName, id);
+      }
+      throw err;
+    }
   }
 
   async healthCheck(): Promise<boolean> {
@@ -132,15 +147,7 @@ export class GojiBerryClient {
   }
 
   async getLead(id: string): Promise<Lead> {
-    try {
-      return await this.request<Lead>('GET', `/v1/contact/${id}`);
-    } catch (err) {
-      if (err instanceof Http404Error) {
-        console.log(`Lead ${id} not found in GojiBerry`);
-        throw new NotFoundError('Lead', id);
-      }
-      throw err;
-    }
+    return this.getById<Lead>('/v1/contact', 'Lead', id);
   }
 
   async searchLeads(filters: LeadFilters = {}): Promise<PaginatedLeads> {
@@ -183,15 +190,7 @@ export class GojiBerryClient {
   }
 
   async getCampaign(id: string): Promise<Campaign> {
-    try {
-      return await this.request<Campaign>('GET', `/v1/campaign/${id}`);
-    } catch (err) {
-      if (err instanceof Http404Error) {
-        console.log(`Campaign ${id} not found in GojiBerry`);
-        throw new NotFoundError('Campaign', id);
-      }
-      throw err;
-    }
+    return this.getById<Campaign>('/v1/campaign', 'Campaign', id);
   }
 
   async getLists(): Promise<List[]> {
@@ -199,15 +198,7 @@ export class GojiBerryClient {
   }
 
   async getList(id: string): Promise<ListWithLeads> {
-    try {
-      return await this.request<ListWithLeads>('GET', `/v1/list/${id}`);
-    } catch (err) {
-      if (err instanceof Http404Error) {
-        console.log(`List ${id} not found in GojiBerry`);
-        throw new NotFoundError('List', id);
-      }
-      throw err;
-    }
+    return this.getById<ListWithLeads>('/v1/list', 'List', id);
   }
 }
 
