@@ -18,6 +18,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 
 | Domain | Feature | Source | Tests | Components | Status |
 |--------|---------|--------|-------|------------|--------|
+| automation | [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md) | `src/automations/weekly-performance-report.ts` | tests/automations/weekly-performance-report.test.ts | - | specced |
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
 | core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | implemented |
 | core-pipeline | [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
@@ -33,10 +34,10 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Status | Count |
 |--------|-------|
 | stub | 0 |
-| specced | 1 |
+| specced | 2 |
 | tested | 0 |
 | implemented | 6 |
-| **Total** | **7** |
+| **Total** | **8** |
 
 ---
 
@@ -48,6 +49,7 @@ _None_
 
 ### Specced
 
+- [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md)
 - [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
 
 ### Tested
