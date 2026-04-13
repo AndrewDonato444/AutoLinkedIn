@@ -230,3 +230,25 @@ export async function checkCampaignHealth(options?: {
 4. **Snapshot comparison for trend detection**: Same pattern as weekly report and morning briefing — JSON snapshots named by date, lexicographic sort to find the most recent. Enables "declining" and "recovered" alerts without a database.
 
 5. **Small scope (S complexity)**: This is a thin automation — fetch campaigns, apply threshold checks, compare to last snapshot, format report. No new API endpoints or data models needed beyond what Feature 11 already established.
+
+## Learnings
+
+### 1. Separate `recoveries` array from `alerts` in the report interface
+
+Recovery signals live in a dedicated `recoveries: CampaignAlert[]` field on `CampaignHealthReport`, not mixed into `alerts`. This lets callers distinguish "here is a new problem" from "a previous problem is now resolved" without inspecting `alert.type`. The text builder prefixes recovery lines with `✅ "Name" — Recovered: ...` to make them visually distinct in the output.
+
+### 2. "Too early" display format intentionally differs from the `status` field value
+
+The `status` field is set to `"too early to evaluate — {sent}/{min_sends} sends"` (full prose, suitable for logging/debugging). The report text builder uses a shorter display form: `too early ({sent}/{min_sends} sends)`. The spec's Output Format section is the ground truth for display; the `status` field carries the machine-readable form. Document both when they differ — the drift check will flag them as inconsistent if only one is updated.
+
+### 3. Stall proxy: `updatedAt` absence = no stall flag (not an error)
+
+`updatedAt` is the API's best proxy for "last send" — it's not a dedicated field. When `updatedAt` is absent from a campaign, the implementation treats it as "unknown activity date" and skips the stall check entirely (no false positives). This is a deliberate choice documented in Design Decision #1.
+
+### 4. Skip snapshot write on zero-active-campaigns runs
+
+When there are no active campaigns, no snapshot is written. There's nothing meaningful to persist, and writing an empty snapshot would cause a spurious "new snapshot exists" on the next run without adding value. The snapshot file is only written when `campaignsChecked > 0`.
+
+### 5. Gherkin prose can describe types that were later narrowed during implementation
+
+The scenario "Store health snapshot for future comparison" originally described the snapshot as including "last-send timestamps". The `HealthSnapshot` interface (in both the spec's Function Signature and the code) only stores `id, alerts, replyRate, sent` — `lastSendEstimate` is used transiently in `CampaignHealthStatus` but not persisted. The scenario prose was aspirational and predated the narrowing decision. The drift check caught this and updated the prose to match the interface. Always reconcile scenario text against type definitions during drift check.

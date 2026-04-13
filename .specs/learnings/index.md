@@ -10,6 +10,22 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Campaign Health Monitor** — the most hard-won lessons from this session:
+
+1. **Separate `recoveries` array from `alerts`** (general.md): Recovery signals belong in a dedicated `recoveries: CampaignAlert[]` field on the report interface — not mixed into `alerts`. Callers can then distinguish "new problem" from "resolved problem" without inspecting `alert.type`.
+
+2. **`status` field and display format can intentionally differ** (general.md): `status = "too early to evaluate — 3/10 sends"` (machine-readable) vs. display `"too early (3/10 sends)"` (abbreviated output). Document both in the spec's Output Format and Function Signature; the drift check flags them if only one is updated.
+
+3. **File-write absence as early-exit signal** (testing.md): To verify an AuthError aborts before any side effects, assert `fs.readdirSync(tmpDir).length === 0` after the throw — not just that the error was thrown. Cleaner than asserting on call counts or partial state.
+
+4. **`daysAgoIso(n)` helper for stall tests** (testing.md): Hard-coded ISO timestamps make stall detection tests brittle as dates advance. Use a `daysAgoIso(n)` helper that computes relative to `new Date()`.
+
+5. **Gherkin prose can describe types that were narrowed during implementation** (spec learnings): The "Store health snapshot" scenario said "last-send timestamps" but `HealthSnapshot` only stores `id, alerts, replyRate, sent` — `lastSendEstimate` is transient. The drift check caught this. Always reconcile scenario text against type definitions during drift check.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Morning Briefing** — the most hard-won lessons from this session:
 
 1. **Filter-aware mock implementations for call-argument isolation** (testing.md): When the same mock method is called with different filter args (e.g., once without `scoreFrom`, once with it), the mock must apply those filters. A naive "return everything" mock makes "no warm leads" and "has warm leads" scenarios impossible to isolate without separate describe blocks.
