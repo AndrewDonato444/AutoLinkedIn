@@ -139,7 +139,6 @@ And the GojiBerry API rate limit is 100 requests per minute
 When any stage approaches the rate limit
 Then the underlying API client handles rate limiting (backoff and retry)
 And the scan does not fail due to rate limits alone
-And the summary notes if rate limiting caused delays
 
 ## Output Format
 
