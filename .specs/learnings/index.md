@@ -4,10 +4,26 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Files
 
-- [Testing Patterns](testing.md) — Vitest setup, fake-timer gotchas, AbortError mocking, spy on console
-- [API & Data Patterns](api.md) — HTTP client design, two-tier 404 errors, rate limiting, env config, retry backoff
+- [Testing Patterns](testing.md) — Vitest setup, fake-timer gotchas, AbortError mocking, spy on console, function injection, Pick<> for mocks
+- [API & Data Patterns](api.md) — HTTP client design, two-tier 404 errors, rate limiting, env config, retry backoff, SDK type casting, LLM-delegated ranking
 
 ## Recent Learnings (2026-04-13)
+
+**ICP-Based Lead Discovery** — the most hard-won lessons from this session:
+
+1. **Function injection beats SDK mocking** (testing.md): Inject a typed `WebSearchFn` instead of mocking the Anthropic SDK constructor. 33 tests, zero SDK mocking. The `_` prefix marks internal/test-only parameters.
+
+2. **`Number("")` = 0, not NaN** (api.md): Empty string env vars silently produce 0. Coerce to a default with `|| DEFAULT_LIMIT` *before* calling `Number()`, then validate `> 0`.
+
+3. **`as any` for unreleased SDK tools** (api.md): `web_search_20250305` isn't in SDK types yet. Cast `tools` as `any` with an inline comment — cleaner than type gymnastics.
+
+4. **Test parameter values can mask bugs** (testing.md): A duplicate test with `limit=4` and 4 leads passes whether or not duplicates consume slots. Choose values where the behavior under test produces a *different* observable result.
+
+5. **Delegate ranking to the LLM prompt** (api.md): Ask the model to return results "ranked best-first" and just `slice(0, limit)`. No scoring algorithm to implement or test.
+
+6. **Spec post-build drift is inevitable** (general pattern): Spec written pre-implementation diverged on 5 points by the time the drift check ran — status, env vars, duplicate slot semantics, ranking ownership, and public API surface. Plan for a post-build spec reconciliation pass on every feature.
+
+---
 
 **GojiBerry API Client** — the most hard-won lessons from this session:
 

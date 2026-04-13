@@ -175,3 +175,50 @@ async function discoverLeads(options?: {
 
 ## Learnings
 
+### `_`-prefixed options injection for SDK testability
+
+Instead of mocking the Anthropic SDK (constructor + method chain), inject a typed function:
+
+```ts
+type WebSearchFn = (icpDescription: string) => Promise<DiscoveredLead[]>;
+
+async function discoverLeads(options?: {
+  _webSearch?: WebSearchFn;  // test-only
+  _client?: LeadClient;       // test-only
+})
+```
+
+Tests pass a simple `vi.fn()` returning `DiscoveredLead[]`. No SDK setup needed. The `_` prefix signals "internal/testing contract" to callers. The real implementation lives in `defaultWebSearch`, which tests never touch.
+
+### `Number("")` returns 0, not NaN — guard env var number parsing
+
+```ts
+// WRONG — DAILY_LEAD_SCAN_LIMIT="" → Number("") = 0, not DEFAULT_LIMIT
+const limit = Number(process.env.DAILY_LEAD_SCAN_LIMIT) || DEFAULT_LIMIT;
+
+// RIGHT — coerce falsy (empty string) before Number()
+const rawLimit = options.limit ?? Number(process.env.DAILY_LEAD_SCAN_LIMIT || DEFAULT_LIMIT);
+const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : DEFAULT_LIMIT;
+```
+
+Empty string is a real env var state (set but blank). `Number("")` silently returns 0.
+
+### `as any` for unreleased Anthropic SDK tool types
+
+`web_search_20250305` is not yet in the SDK's type definitions. Cast `tools` as `any` with an inline comment explaining why:
+
+```ts
+tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
+// web_search_20250305 is not in the SDK types yet — cast required
+```
+
+Remove the cast once the tool is added to the SDK.
+
+### Duplicates consume scan limit slots (by design)
+
+The `slice(0, limit)` is applied **before** the processing loop, so duplicates count against the limit. A spec that says "skip duplicates, don't count toward limit" requires a two-pass approach: first filter duplicates, then apply limit to the non-duplicate set. The current single-pass approach is simpler but means 10 slots may only create 8 leads if 2 are duplicates. Document this tradeoff in any spec that cares about exact creation counts.
+
+### Delegate ranking to the LLM prompt, not code
+
+Rather than implementing a scoring/ranking function, instruct the model to return results "ranked from best ICP fit to weakest" and `slice(0, limit)` the array. This is simpler and produces better results since the LLM understands the ICP semantically. The spec should say "ranked by the web search" not "ranked by the automation."
+

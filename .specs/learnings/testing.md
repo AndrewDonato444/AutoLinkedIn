@@ -80,3 +80,41 @@ delete process.env.GOJIBERRY_API_KEY;
 process.env.GOJIBERRY_API_KEY = originalKey;
 ```
 No special env-mocking library needed. Restore in `afterEach` or in a `finally` block.
+
+---
+
+## Inject typed functions (not SDK objects) to avoid mocking constructors
+
+When testing code that calls an SDK (e.g., Anthropic), injecting a typed function is cleaner than mocking the SDK object:
+
+```ts
+// In source:
+type WebSearchFn = (query: string) => Promise<DiscoveredLead[]>;
+async function discoverLeads(options?: { _webSearch?: WebSearchFn }) {
+  const webSearch = options._webSearch ?? defaultWebSearch; // defaultWebSearch uses real SDK
+}
+
+// In test:
+const mockSearch = vi.fn().mockResolvedValue([{ firstName: 'Jane', ... }]);
+await discoverLeads({ _webSearch: mockSearch });
+```
+
+No SDK constructor mocking, no method chain stubbing. The `_` prefix signals "internal/test-only" contract. Real implementation (`defaultWebSearch`) is tested separately or via integration tests.
+
+---
+
+## Use `Pick<>` for minimal mock client interfaces
+
+When a function only uses a subset of a client's methods, narrow the type:
+
+```ts
+type LeadClient = Pick<GojiBerryClient, 'createLead' | 'searchLeads'>;
+```
+
+Test mocks only need to implement the two methods actually called — not the full 15-method interface. This also makes it obvious at a glance which methods the function depends on.
+
+---
+
+## Choose test parameter values that can't mask bugs
+
+A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether or not duplicates consume limit slots — because 4 leads processed = 4 leads processed either way. Choose values where the behavior under test produces a *different observable result* than the alternative. E.g., use `limit=3` with 4 leads where 1 is a duplicate: if duplicates consume slots, 2 leads get created; if they don't, 3 do.
