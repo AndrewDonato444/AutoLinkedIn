@@ -1,1 +1,4 @@
 auto-sdd
+node_modules/
+dist/
+logs/

@@ -1,0 +1,19 @@
+{
+  "name": "gojiberry-auto",
+  "version": "1.0.0",
+  "description": "GojiBerry automation scripts",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.4"
+  }
+}
