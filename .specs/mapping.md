@@ -38,9 +38,9 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Status | Count |
 |--------|-------|
 | stub | 0 |
-| specced | 2 |
+| specced | 1 |
 | tested | 0 |
-| implemented | 10 |
+| implemented | 11 |
 | **Total** | **12** |
 
 ---
@@ -54,7 +54,6 @@ _None_
 ### Specced
 
 - [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
-- [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md)
 
 ### Tested
 
@@ -72,6 +71,7 @@ _None_
 - [Warm Lead List Builder](.specs/features/intelligence-layer/warm-lead-list-builder.feature.md)
 - [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md)
 - [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md)
+- [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md)
 
 ---
 

@@ -8,7 +8,7 @@ components: []
 design_refs: []
 status: specced
 created: 2026-04-13
-updated: 2026-04-13
+updated: 2026-04-14
 ---
 
 # Personalized Message Generation
@@ -178,12 +178,20 @@ And no message is generated for cold leads
 ```
 src/automations/
 ├── message-generation.ts   # Main automation — orchestrates fetch + generate + store
-├── types.ts                # Shared types (extend with message-generation-specific types)
+├── types.ts                # Shared types (extend with MessageGeneratorFn type)
 ```
 
 ## Public API Surface
 
 ```typescript
+// In types.ts — add alongside existing types
+type MessageGeneratorFn = (
+  lead: Lead,
+  icpDescription: string,
+  options: { tone: string; maxLength: number }
+) => Promise<string>;
+
+// In message-generation.ts
 interface MessageResult {
   lead: Lead;
   message: string;           // The generated personalized message
@@ -196,11 +204,9 @@ interface MessageGenerationResult {
   remaining: number;                              // Warm leads still needing messages
 }
 
-type MessageGeneratorFn = (
-  lead: Lead,
-  icpDescription: string,
-  options: { tone: string; maxLength: number }
-) => Promise<string>;
+// Use Pick<> pattern — only declare the client methods this module actually calls
+// (Per learnings: eliminates `as unknown as Client` casts in tests)
+type MessageGenClient = Pick<GojiBerryClient, 'searchLeads' | 'getLead' | 'updateLead'>;
 
 async function generateMessages(options?: {
   leadId?: string;              // Generate for a single lead by ID
@@ -211,8 +217,10 @@ async function generateMessages(options?: {
   tone?: string;                // Override MESSAGE_TONE
   maxLength?: number;           // Override MESSAGE_MAX_LENGTH
   _messageGenerator?: MessageGeneratorFn;  // Test-only: inject mock generator
-  _client?: GojiBerryClient;              // Test-only: inject mock GojiBerry client
+  _client?: MessageGenClient;              // Test-only: inject mock GojiBerry client
 }): Promise<MessageGenerationResult>
+
+// Reuse resolvePositiveNumber from lead-enrichment.ts for option→env→default resolution
 ```
 
 ## Data Flow
@@ -221,8 +229,14 @@ async function generateMessages(options?: {
 1. Read ICP_DESCRIPTION + MIN_INTENT_SCORE + MESSAGE_* vars from .env.local
            │
 2. Fetch warm leads from GojiBerry
-   (searchLeads where fitScore >= threshold, no personalizedMessages,
-    has intentSignals, sorted by fitScore desc, limited by MESSAGE_BATCH_SIZE)
+   searchLeads({ scoreFrom: MIN_INTENT_SCORE }) — API filters by fitScore
+   THEN client-side filter:
+     - Remove leads that already have personalizedMessages (unless forceRegenerate)
+     - Remove leads with no intentSignals (nothing to personalize from)
+     - Sort by fitScore descending (warmest first)
+     - Limit to MESSAGE_BATCH_SIZE
+   NOTE: GojiBerry LeadFilters does NOT support filtering by intentSignals
+   presence or personalizedMessages absence — these must be client-side
            │
 3. For each lead:
    ├── Build prompt with: lead profile, intentSignals, ICP description, tone, max length
@@ -262,3 +276,15 @@ LinkedIn connection request messages are capped at 300 characters. Since this is
 ### No messages for leads without intent signals
 
 A lead with a fitScore but no intentSignals has nothing to personalize from. The message would inevitably be generic. Better to skip and let the founder know these leads need enrichment first.
+
+### Client-side filtering is unavoidable
+
+The GojiBerry `LeadFilters` API supports `scoreFrom`/`scoreTo` but not filtering by `intentSignals` presence or `personalizedMessages` absence. This means step 2 of the data flow must fetch all warm leads (by score) and then filter client-side. For large lead databases, this could mean fetching more leads than needed — but at 100 req/min rate limit and typical batch sizes of 25, pagination shouldn't be an issue in practice.
+
+### Reuse `resolvePositiveNumber` from enrichment
+
+The `resolvePositiveNumber(optionValue, envKey, defaultValue)` helper in `lead-enrichment.ts` already handles the option→env→default resolution pattern with `Number("")` guard. Extract to a shared utility or import from enrichment rather than reimplementing.
+
+## Learnings
+
+_(Populated after implementation via `/compound`)_

@@ -1,5 +1,23 @@
 import type { Lead } from '../api/types.js';
 
+export type MessageGeneratorFn = (
+  lead: Lead,
+  icpDescription: string,
+  options: { tone: string; maxLength: number }
+) => Promise<string>;
+
+export interface MessageResult {
+  lead: Lead;
+  message: string;
+}
+
+export interface MessageGenerationResult {
+  generated: MessageResult[];
+  failed: { lead: Lead; error: string }[];
+  skipped: Lead[];
+  remaining: number;
+}
+
 export interface DiscoveredLead {
   firstName: string;
   lastName: string;
