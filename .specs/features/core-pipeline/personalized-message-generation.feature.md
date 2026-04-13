@@ -6,9 +6,9 @@ tests:
   - tests/automations/message-generation.test.ts
 components: []
 design_refs: []
-status: specced
+status: implemented
 created: 2026-04-13
-updated: 2026-04-14
+updated: 2026-04-13
 ---
 
 # Personalized Message Generation
@@ -208,7 +208,8 @@ interface MessageGenerationResult {
 // (Per learnings: eliminates `as unknown as Client` casts in tests)
 type MessageGenClient = Pick<GojiBerryClient, 'searchLeads' | 'getLead' | 'updateLead'>;
 
-async function generateMessages(options?: {
+// Exported options interface (named export — usable by callers and tests)
+export interface GenerateMessagesOptions {
   leadId?: string;              // Generate for a single lead by ID
   forceRegenerate?: boolean;    // Overwrite existing messages
   batchSize?: number;           // Override MESSAGE_BATCH_SIZE
@@ -218,7 +219,18 @@ async function generateMessages(options?: {
   maxLength?: number;           // Override MESSAGE_MAX_LENGTH
   _messageGenerator?: MessageGeneratorFn;  // Test-only: inject mock generator
   _client?: MessageGenClient;              // Test-only: inject mock GojiBerry client
-}): Promise<MessageGenerationResult>
+}
+
+// Default message generator using Anthropic Claude (exported — injectable in tests)
+export async function defaultMessageGenerator(
+  lead: Lead,
+  icpDescription: string,
+  options: { tone: string; maxLength: number },
+): Promise<string>
+
+export async function generateMessages(
+  options?: GenerateMessagesOptions,
+): Promise<MessageGenerationResult>
 
 // Reuse resolvePositiveNumber from lead-enrichment.ts for option→env→default resolution
 ```
@@ -229,7 +241,8 @@ async function generateMessages(options?: {
 1. Read ICP_DESCRIPTION + MIN_INTENT_SCORE + MESSAGE_* vars from .env.local
            │
 2. Fetch warm leads from GojiBerry
-   searchLeads({ scoreFrom: MIN_INTENT_SCORE }) — API filters by fitScore
+   searchLeads({ scoreFrom: MIN_INTENT_SCORE, pageSize: 500 }) — fetches up to 500 leads
+   to ensure client-side filtering has enough candidates (FETCH_PAGE_SIZE = 500 constant)
    THEN client-side filter:
      - Remove leads that already have personalizedMessages (unless forceRegenerate)
      - Remove leads with no intentSignals (nothing to personalize from)
@@ -287,4 +300,8 @@ The `resolvePositiveNumber(optionValue, envKey, defaultValue)` helper in `lead-e
 
 ## Learnings
 
-_(Populated after implementation via `/compound`)_
+- **`FETCH_PAGE_SIZE = 500`**: The batch fetch uses `pageSize: 500` to fetch a large page of warm leads before client-side filtering. This ensures `batchSize` leads can always be filled even after filtering out already-messaged or signal-less leads.
+- **`defaultMessageGenerator` is exported**: Makes it injectable in tests and reusable in other automations without duplicating the Anthropic setup.
+- **`enforceMaxLength` uses sentence boundary**: When a generated message exceeds `maxLength`, it truncates at the last period past 50% of the limit to preserve complete sentences. If no such period exists, it hard-truncates.
+- **`GenerateMessagesOptions` is a named export**: Allows callers to type their option objects without importing the implementation.
+- **`resolvePositiveNumber` imported from `lead-enrichment.ts`**: Not reimplemented — direct import. Consistent option→env→default resolution across all automations.
