@@ -13,6 +13,8 @@ const DEFAULT_LEAD_LIMIT = 10;
 const DEFAULT_MIN_INTENT_SCORE = 50;
 const DEFAULT_CRON = '0 7 * * 1-5';
 const DEFAULT_SCAN_LOG_DIR = 'data/scan-logs';
+const AUTH_ABORT_MSG =
+  'Daily scan aborted — API authentication failed. Check your GOJIBERRY_API_KEY.';
 
 export interface DailyScanOptions {
   /** Override ICP_DESCRIPTION from env */
@@ -257,27 +259,38 @@ export async function runDailyLeadScan(
   const enrichFn = options._enrichLeads ?? enrichLeads;
   const generateFn = options._generateMessages ?? generateMessages;
 
+  /** Build, save, and return an abort result where nextAction === summaryText. */
+  const abort = async (
+    msg: string,
+    discovery: DiscoveryResult,
+    enrichment: EnrichmentResult | null,
+    aboveThreshold: number,
+    belowThreshold: number,
+    failures: DailyScanResult['failures'],
+    logFn: (m: string) => void = console.error,
+  ): Promise<DailyScanResult> => {
+    logFn(msg);
+    const result: DailyScanResult = {
+      date,
+      discovery,
+      enrichment,
+      messageGeneration: null,
+      aboveThreshold,
+      belowThreshold,
+      failures,
+      nextAction: msg,
+      durationMs: Date.now() - startTime,
+      summaryText: msg,
+    };
+    await saveScanLog(result, scanLogDir);
+    return result;
+  };
+
   // ── Validate ICP ────────────────────────────────────────────────────────────
   if (!icpDescription || icpDescription.trim() === '') {
     const abortMsg =
       'Daily scan aborted — ICP_DESCRIPTION is required. Define your ideal customer to start scanning.';
-    console.log(abortMsg);
-
-    const emptyDiscovery = makeEmptyDiscovery();
-    const result: DailyScanResult = {
-      date,
-      discovery: emptyDiscovery,
-      enrichment: null,
-      messageGeneration: null,
-      aboveThreshold: 0,
-      belowThreshold: 0,
-      failures: [],
-      nextAction: abortMsg,
-      durationMs: Date.now() - startTime,
-      summaryText: abortMsg,
-    };
-    await saveScanLog(result, scanLogDir);
-    return result;
+    return abort(abortMsg, makeEmptyDiscovery(), null, 0, 0, [], console.log);
   }
 
   // ── Step 1: Discovery ───────────────────────────────────────────────────────
@@ -286,34 +299,15 @@ export async function runDailyLeadScan(
     discoveryResult = await discoverFn({ icpDescription, limit: leadLimit });
   } catch (err: unknown) {
     if (err instanceof AuthError) {
-      const abortMsg =
-        'Daily scan aborted — API authentication failed. Check your GOJIBERRY_API_KEY.';
-      console.error(abortMsg);
-      const emptyDiscovery = makeEmptyDiscovery();
-      const result: DailyScanResult = {
-        date,
-        discovery: emptyDiscovery,
-        enrichment: null,
-        messageGeneration: null,
-        aboveThreshold: 0,
-        belowThreshold: 0,
-        failures: [],
-        nextAction: abortMsg,
-        durationMs: Date.now() - startTime,
-        summaryText: abortMsg,
-      };
-      await saveScanLog(result, scanLogDir);
-      return result;
+      return abort(AUTH_ABORT_MSG, makeEmptyDiscovery(), null, 0, 0, []);
     }
 
     const errorMessage = err instanceof Error ? err.message : String(err);
     const failMsg = `Daily scan failed at discovery: ${errorMessage}`;
     console.error(failMsg);
-
-    const emptyDiscovery = makeEmptyDiscovery();
     const result: DailyScanResult = {
       date,
-      discovery: emptyDiscovery,
+      discovery: makeEmptyDiscovery(),
       enrichment: null,
       messageGeneration: null,
       aboveThreshold: 0,
@@ -374,23 +368,7 @@ export async function runDailyLeadScan(
     });
   } catch (err: unknown) {
     if (err instanceof AuthError) {
-      const abortMsg =
-        'Daily scan aborted — API authentication failed. Check your GOJIBERRY_API_KEY.';
-      console.error(abortMsg);
-      const result: DailyScanResult = {
-        date,
-        discovery: discoveryResult,
-        enrichment: null,
-        messageGeneration: null,
-        aboveThreshold: 0,
-        belowThreshold: 0,
-        failures: buildFailures(discoveryResult, null, null),
-        nextAction: abortMsg,
-        durationMs: Date.now() - startTime,
-        summaryText: abortMsg,
-      };
-      await saveScanLog(result, scanLogDir);
-      return result;
+      return abort(AUTH_ABORT_MSG, discoveryResult, null, 0, 0, buildFailures(discoveryResult, null, null));
     }
     throw err;
   }
@@ -418,23 +396,7 @@ export async function runDailyLeadScan(
       msgResult = await generateFn(genOptions);
     } catch (err: unknown) {
       if (err instanceof AuthError) {
-        const abortMsg =
-          'Daily scan aborted — API authentication failed. Check your GOJIBERRY_API_KEY.';
-        console.error(abortMsg);
-        const result: DailyScanResult = {
-          date,
-          discovery: discoveryResult,
-          enrichment: enrichmentResult,
-          messageGeneration: null,
-          aboveThreshold,
-          belowThreshold,
-          failures: buildFailures(discoveryResult, enrichmentResult, null),
-          nextAction: abortMsg,
-          durationMs: Date.now() - startTime,
-          summaryText: abortMsg,
-        };
-        await saveScanLog(result, scanLogDir);
-        return result;
+        return abort(AUTH_ABORT_MSG, discoveryResult, enrichmentResult, aboveThreshold, belowThreshold, buildFailures(discoveryResult, enrichmentResult, null));
       }
       throw err;
     }
