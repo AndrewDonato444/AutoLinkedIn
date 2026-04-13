@@ -179,6 +179,35 @@ Always verify: `mockTotal - batchSize === expectedRemaining` before writing the 
 
 ---
 
+## Mock client factory with `Partial<override map>` + `asClient()` cast helper
+
+When mocking a client for multiple tests, create a factory that accepts overrides and a cast helper that avoids repeating `as unknown as ClientType`:
+
+```ts
+type MockClient = { searchLeads: ReturnType<typeof vi.fn>; ... };
+
+function makeMockClient(overrides: Partial<{
+  searchLeads: () => Promise<PaginatedLeads>;
+  getCampaigns: () => Promise<Campaign[]>;
+  // ...
+}> = {}): MockClient {
+  return {
+    searchLeads: overrides.searchLeads
+      ? vi.fn().mockImplementation(overrides.searchLeads)
+      : vi.fn().mockResolvedValue(paginatedWith([])),
+    // ...
+  };
+}
+
+function asClient(mock: MockClient): GojiBerryClient {
+  return mock as unknown as GojiBerryClient;
+}
+```
+
+The `Partial<{ method: () => Promise<T> }>` override shape means each test only specifies what it needs. `asClient()` removes the noisy cast from every test call site — keeps test bodies readable.
+
+---
+
 ## Choose test parameter values that can't mask bugs
 
 A duplicate-detection test with `limit=4` and exactly 4 leads will pass whether or not duplicates consume limit slots — because 4 leads processed = 4 leads processed either way. Choose values where the behavior under test produces a *different observable result* than the alternative. E.g., use `limit=3` with 4 leads where 1 is a duplicate: if duplicates consume slots, 2 leads get created; if they don't, 3 do.

@@ -149,3 +149,13 @@ export async function generatePipelineOverview(
 - Throws on API errors (auth, network) — caller handles retries
 
 ## Learnings
+
+1. **`Promise.all()` for parallel API fan-out**: All four endpoints (`searchLeads`, `getIntentTypeCounts`, `getCampaigns`, `getLists`) are independent — fan them out in a single `Promise.all()`. Any failure propagates immediately (fail-fast). Sequential calls would be ~4× slower for no reason.
+
+2. **`do...while` for pagination**: `do { fetch page; push; page++ } while (allLeads.length < total)` always fetches at least page 1, then continues until complete. Cleaner than a while-with-pre-check and avoids off-by-one when total is 0 (the loop runs once, gets empty results, and exits).
+
+3. **Pure function aggregation after async fetch**: `fetchAllLeads`, `computeScoreTiers`, `aggregateCampaigns`, `aggregateLists`, and `generateSummary` are all pure functions that operate on already-fetched data. This split makes each step independently unit-testable without any async machinery.
+
+4. **Guard both `undefined` and `null` for optional API numeric fields**: `classifyScoreTier` checks `score === undefined || score === null` because the GojiBerry API may return `null` explicitly or omit the field entirely. A single `score == null` (loose equality) or `score === undefined` check is not enough.
+
+5. **`PipelineClient` Pick<> alias narrows mock surface**: The internal `fetchAllLeads` helper types its client as `Pick<GojiBerryClient, 'searchLeads' | 'getIntentTypeCounts' | 'getCampaigns' | 'getLists'>`. Test mocks only need to implement those four methods — not the full client interface.

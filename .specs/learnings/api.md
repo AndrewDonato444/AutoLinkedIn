@@ -202,6 +202,52 @@ The drift check will catch this, but writing it correctly upfront avoids the rec
 
 ---
 
+## `Promise.all()` for parallel independent API fan-out
+
+When a function needs data from N endpoints that don't depend on each other, fetch them all in parallel:
+
+```ts
+const [{ leads, total }, byIntentType, campaigns, lists] = await Promise.all([
+  fetchAllLeads(client),
+  client.getIntentTypeCounts(),
+  client.getCampaigns(),
+  client.getLists(),
+]);
+```
+
+Any rejection propagates immediately (fail-fast). Sequential `await` calls are 4× slower for no reason when the fetches are independent. Destructure the tuple to keep the variables named.
+
+---
+
+## `do...while` for API pagination
+
+When paginating, use `do...while` so page 1 is always fetched before checking the termination condition:
+
+```ts
+do {
+  const result = await client.searchLeads({ page, pageSize: PAGE_SIZE });
+  total = result.total;
+  allLeads.push(...result.leads);
+  page++;
+} while (allLeads.length < total);
+```
+
+A `while`-with-pre-check would skip the first fetch if `total` were somehow 0 before the first call — which is impossible here, but `do...while` makes the intent obvious. Avoids off-by-one issues when results span exactly one page.
+
+---
+
+## Guard both `undefined` and `null` for optional API numeric fields
+
+When an API may return `null` explicitly or omit a field entirely, check for both:
+
+```ts
+if (score === undefined || score === null) return 'unscored';
+```
+
+`score === undefined` alone misses `null`. `score == null` (loose equality) works but is easy to confuse with `score === null`. The explicit two-check form is the clearest and safest.
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:

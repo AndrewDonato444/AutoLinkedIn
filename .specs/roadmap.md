@@ -12,12 +12,12 @@
 
 | Phase | Features | Done | Status |
 |-------|----------|------|--------|
-| 1: Core Pipeline | 4 | 3 | 🔄 |
-| 2: Intelligence Layer | 4 | 0 | ⬜ |
+| 1: Core Pipeline | 4 | 3 | ⏸️ |
+| 2: Intelligence Layer | 4 | 1 | 🔄 |
 | 3: Automation & Scheduling | 4 | 0 | ⬜ |
 | 4: Optimization Loop | 3 | 0 | ⬜ |
 
-**Overall: 3/15 (20%) — Last updated: 2026-04-13 — Feature 4 next**
+**Overall: 4/15 (27%) — Last updated: 2026-04-13 — Feature 11 next**
 
 ---
 
@@ -30,7 +30,7 @@ Get leads from the web into GojiBerry with personalized messages. The minimum vi
 | 1 | GojiBerry API client | vision | M | - | ✅ |
 | 2 | ICP-based lead discovery | vision | M | 1 | ✅ |
 | 3 | Lead enrichment + intent scoring | vision | M | 1 | ✅ |
-| 4 | Personalized message generation | vision | M | 1,3 | ⬜ |
+| 4 | Personalized message generation | vision | M | 1,3 | ⏸️ |
 
 **Feature 1 — GojiBerry API client**: Shell-based or script-based wrapper around the GojiBerry REST API. Handles auth (bearer token from `.env.local`), CRUD for contacts, campaign retrieval, list retrieval. Includes rate limit handling (100 req/min) and error reporting. This is the foundation everything else calls.
 
@@ -48,7 +48,7 @@ Understand what's working and surface the right information at the right time.
 
 | # | Feature | Source | Complexity | Deps | Status |
 |---|---------|--------|------------|------|--------|
-| 10 | Pipeline overview report | vision | S | 1 | ⬜ |
+| 10 | Pipeline overview report | vision | S | 1 | ✅ |
 | 11 | Campaign performance analytics | vision | M | 1 | ⬜ |
 | 12 | Intent type breakdown | vision | S | 1 | ⬜ |
 | 13 | Warm lead list builder | vision | M | 1,3 | ⬜ |
