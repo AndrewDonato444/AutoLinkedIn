@@ -326,3 +326,35 @@ fs.writeFileSync(yesterdayPath, JSON.stringify(previousSnapshot));
 ```
 
 This pattern pairs with `Pick<>` client injection (also documented here) — both use the `_` prefix convention to signal "internal/test-only" parameters.
+
+---
+
+## File-write absence as early-exit signal for AuthError tests
+
+When testing that an auth error aborts execution before any side effects, assert that no files were written to the injected temp dir — rather than only testing that the error was thrown:
+
+```ts
+const tmpDir = os.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+const err = new AuthError('Unauthorized');
+const client = { getCampaigns: vi.fn().mockRejectedValue(err) };
+await expect(checkCampaignHealth({ _client: client, _snapshotDir: tmpDir })).rejects.toThrow(AuthError);
+expect(fs.readdirSync(tmpDir)).toHaveLength(0); // no snapshot written
+```
+
+This is more meaningful than just checking the throw — it verifies the function didn't proceed past the error point. Applies anywhere a failed async call should abort before filesystem writes.
+
+---
+
+## `daysAgoIso(n)` helper for stall detection tests
+
+Stall detection depends on time-relative `updatedAt` values. Hard-coding ISO timestamps like `"2026-04-10T00:00:00.000Z"` makes tests brittle (they pass today but fail as the real date advances). Use a `daysAgoIso(n)` helper instead:
+
+```ts
+function daysAgoIso(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString();
+}
+```
+
+Pass `daysAgoIso(4)` for a campaign that stalled 4 days ago, `daysAgoIso(1)` for one still active. This pattern applies to any test that reasons about durations relative to "now".

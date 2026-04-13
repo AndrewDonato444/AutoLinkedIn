@@ -88,3 +88,29 @@ Root cause pattern: spec written before implementation → scenario description 
 Output format sections in specs use `{placeholder}` tokens that can be interpreted multiple ways. The `({change})` secondary parenthetical in a template may mean "show the absolute number" in one reading and "not needed" in the code. After implementation, reconcile the template against actual output and remove or update any tokens that resolved differently than written.
 
 The drift check will catch this, but noting it in the spec's Learnings section (and removing the ambiguous token) is faster than a post-build reconciliation pass.
+
+---
+
+## Separate signal arrays for "problems" vs "recoveries" in report interfaces
+
+When a report interface mixes new-problem alerts with resolved-problem signals, callers must inspect `alert.type` to distinguish them. Prefer two separate arrays:
+
+```ts
+interface HealthReport {
+  alerts: CampaignAlert[];      // new or ongoing issues
+  recoveries: CampaignAlert[];  // previously flagged, now resolved
+}
+```
+
+This makes the caller contract explicit: `report.alerts.length > 0` means "something broke", `report.recoveries.length > 0` means "something healed". No type inspection needed.
+
+---
+
+## `status` field value and display format can intentionally differ — document both
+
+A data model's `status` field (machine-readable, for serialization and logging) can legitimately differ from the display string shown to the user. Example:
+
+- `status` = `"too early to evaluate — 3/10 sends"` (full prose, stable format for downstream consumers)
+- Display = `"too early (3/10 sends)"` (abbreviated, fits the output table)
+
+Document both in the spec's Output Format section and Function Signature. The drift check will flag them as inconsistent if only one is updated. Name the pair in comments in the report builder so the difference is intentional, not accidental.
