@@ -340,6 +340,16 @@ function computeFeedbackTrend(campaigns: Campaign[]): LeadQualityFeedbackReport[
 // Field importance (deterministic)
 // ──────────────────────────────────────────────────────────────────────────────
 
+function liftToCategory(
+  lift: number,
+  sampleSize: number,
+): SignalEffectiveness['category'] {
+  if (sampleSize < MIN_SAMPLE_HIGH_CONF) return 'inconclusive';
+  if (lift >= 1.5) return 'effective';
+  if (lift < 0.8) return 'ineffective';
+  return 'inconclusive';
+}
+
 function computeFieldImportance(
   allLeads: Lead[],
   repliedIds: Set<string>,
@@ -362,17 +372,7 @@ function computeFieldImportance(
     const replyRateWithSignal = round2((repliedWithSignal / leadsWithSignal) * 100);
     const lift = overallReplyRate > 0 ? round2(replyRateWithSignal / overallReplyRate) : 0;
     const confidence: 'high' | 'low' = leadsWithSignal >= MIN_SAMPLE_HIGH_CONF ? 'high' : 'low';
-
-    let category: SignalEffectiveness['category'];
-    if (leadsWithSignal < MIN_SAMPLE_HIGH_CONF) {
-      category = 'inconclusive';
-    } else if (lift >= 1.5) {
-      category = 'effective';
-    } else if (lift < 0.8) {
-      category = 'ineffective';
-    } else {
-      category = 'inconclusive';
-    }
+    const category = liftToCategory(lift, leadsWithSignal);
 
     results.push({
       signal,
@@ -405,7 +405,7 @@ function computeFieldImportance(
       replyRateWithSignal: aboveRate,
       baselineReplyRate: round2(overallReplyRate),
       lift: scoreLift,
-      category: scoreLift >= 1.5 ? 'effective' : scoreLift < 0.8 ? 'ineffective' : 'inconclusive',
+      category: liftToCategory(scoreLift, aboveMedian.length),
       confidence: 'high',
     });
   }
@@ -473,13 +473,8 @@ function buildReportText(
   }
 
   // --- Enrichment Signals That Work ---
-  const allSignals = [
-    ...report.signalEffectiveness.effective,
-    ...report.signalEffectiveness.ineffective,
-    ...report.signalEffectiveness.inconclusive,
-  ];
-  const effectiveSignals = allSignals.filter((s) => s.category === 'effective');
-  const ineffectiveSignals = allSignals.filter((s) => s.category === 'ineffective');
+  const effectiveSignals = report.signalEffectiveness.effective;
+  const ineffectiveSignals = report.signalEffectiveness.ineffective;
 
   lines.push('');
   lines.push('--- Enrichment Signals That Work ---');
@@ -553,8 +548,8 @@ function buildReportText(
 
   // --- Signals to Watch (low confidence) ---
   const lowConfIntents = report.intentCorrelations.filter((c) => c.confidence === 'low');
-  const allLowConf = [
-    ...lowConfRecs,
+  const allLowConf: Array<{ recommendation: string; dataPoint: string }> = [
+    ...lowConfRecs.map((r) => ({ recommendation: r.recommendation, dataPoint: r.dataPoint })),
     ...lowConfIntents.map((c) => ({
       recommendation: `${c.intentType}: ${round2(c.replyRate)}% reply rate`,
       dataPoint: `small sample (${c.sent} leads)`,
@@ -565,9 +560,8 @@ function buildReportText(
     lines.push('');
     lines.push('--- Signals to Watch (low confidence) ---');
     for (const item of allLowConf) {
-      const dataPoint = 'dataPoint' in item ? item.dataPoint : '';
       lines.push(
-        `  ${'recommendation' in item ? item.recommendation : ''} — need more data to confirm${dataPoint ? ` (${dataPoint})` : ''}`,
+        `  ${item.recommendation} — need more data to confirm${item.dataPoint ? ` (${item.dataPoint})` : ''}`,
       );
     }
   }
@@ -713,7 +707,7 @@ Return ONLY valid JSON (no other text):
   });
 
   const textBlock = response.content.find((b) => b.type === 'text');
-  if (!textBlock || textBlock.type !== 'text') {
+  if (!textBlock) {
     return { signalEffectiveness: [], recommendations: [] };
   }
 
