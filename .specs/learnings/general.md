@@ -201,6 +201,33 @@ This is clearer than suppressing with a `// eslint-disable` comment or deleting 
 
 ---
 
+## Force-refresh flags must be threaded through EVERY filter pass
+
+When a batch function has multiple filter passes (e.g., "skip already processed" AND "must meet eligibility criteria"), a `forceRegenerate`/`forceRefresh` flag must appear explicitly in **each** pass — not just one:
+
+```ts
+// WRONG — forceRegenerate only in the eligibility filter; alreadyMessaged partition still runs
+const alreadyMessaged = page.leads.filter((l) => (l.personalizedMessages?.length ?? 0) > 0);
+result.skipped.push(...alreadyMessaged);
+const eligible = page.leads
+  .filter((l) => options.forceRegenerate || !(l.personalizedMessages?.length)) // ← correct here
+  .filter((l) => (l.intentSignals?.length ?? 0) > 0);
+// Still broken: already-messaged leads were pushed to skipped before forceRegenerate check
+
+// RIGHT — forceRegenerate appears in the partition AND the eligibility filter
+const alreadyMessaged = page.leads.filter(
+  (l) => !options.forceRegenerate && (l.personalizedMessages?.length ?? 0) > 0
+);
+result.skipped.push(...alreadyMessaged);
+const eligible = page.leads
+  .filter((l) => options.forceRegenerate || !(l.personalizedMessages?.length))
+  .filter((l) => (l.intentSignals?.length ?? 0) > 0);
+```
+
+**Why it matters:** The partition pass and the eligibility filter are conceptually separate. A reader might add the flag to one and miss the other. The symptom is subtle: force-refresh appears to work (eligible filter bypasses the check) but the skipped count is still wrong (the partition still categorized those leads as skipped). Write a test that asserts `result.skipped.length === 0` when `forceRegenerate: true`.
+
+---
+
 ## `status` field value and display format can intentionally differ — document both
 
 A data model's `status` field (machine-readable, for serialization and logging) can legitimately differ from the display string shown to the user. Example:
