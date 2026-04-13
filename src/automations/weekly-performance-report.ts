@@ -3,7 +3,6 @@ import * as path from 'path';
 import { GojiBerryClient } from '../api/gojiberry-client.js';
 import {
   analyzeCampaignPerformance,
-  type CampaignMetrics,
   type CampaignReport,
 } from './campaign-performance-analytics.js';
 
@@ -36,10 +35,20 @@ export interface WeeklyReport {
 type WeeklyReportClient = Pick<GojiBerryClient, 'getCampaigns'>;
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Snapshot helpers
+// Constants
 // ──────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_SNAPSHOT_DIR = 'data/weekly-snapshots';
+const MAX_RECOMMENDATIONS = 3;
+const MIN_SENDS_FOR_PAUSE_REVIEW = 20;
+const LOW_REPLY_RATE_THRESHOLD_PCT = 3;
+const TOP_CAMPAIGN_DOMINANCE_FACTOR = 2;
+const DELTA_STABILITY_THRESHOLD_PP = 0.05;
+const TOP_CAMPAIGNS_TO_SHOW = 2;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Snapshot helpers
+// ──────────────────────────────────────────────────────────────────────────────
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0];
@@ -82,9 +91,13 @@ function formatDeltaPp(delta: number): string {
 }
 
 function deltaIndicator(delta: number): 'improving' | 'declining' | 'stable' {
-  if (delta > 0.05) return 'improving';
-  if (delta < -0.05) return 'declining';
+  if (delta > DELTA_STABILITY_THRESHOLD_PP) return 'improving';
+  if (delta < -DELTA_STABILITY_THRESHOLD_PP) return 'declining';
   return 'stable';
+}
+
+function isStalledCampaign(c: { status: string; replied: number; sent: number }): boolean {
+  return c.status === 'active' && c.replied === 0 && c.sent >= MIN_SENDS_FOR_PAUSE_REVIEW;
 }
 
 function formatSentDelta(delta: number): string {
@@ -120,7 +133,7 @@ function generateRecommendations(report: CampaignReport): string[] {
   if (
     top &&
     overallAverages.replyRate > 0 &&
-    top.replyRate >= 2 * overallAverages.replyRate
+    top.replyRate >= TOP_CAMPAIGN_DOMINANCE_FACTOR * overallAverages.replyRate
   ) {
     recs.push(
       `Double down on what's working in ${top.name}: replicate its approach`,
@@ -129,8 +142,8 @@ function generateRecommendations(report: CampaignReport): string[] {
 
   // Pattern 2: Active campaign with 0 replies after 20+ sends → consider pausing
   for (const c of campaigns) {
-    if (recs.length >= 3) break;
-    if (c.status === 'active' && c.replied === 0 && c.sent >= 20) {
+    if (recs.length >= MAX_RECOMMENDATIONS) break;
+    if (isStalledCampaign(c)) {
       recs.push(
         `Campaign ${c.name} isn't getting replies — consider pausing and revising messages`,
       );
@@ -138,13 +151,17 @@ function generateRecommendations(report: CampaignReport): string[] {
   }
 
   // Pattern 3: Overall reply rate < 3%
-  if (recs.length < 3 && overallAverages.replyRate < 3 && overallAverages.totalSent > 0) {
+  if (
+    recs.length < MAX_RECOMMENDATIONS &&
+    overallAverages.replyRate < LOW_REPLY_RATE_THRESHOLD_PCT &&
+    overallAverages.totalSent > 0
+  ) {
     recs.push(
       'Reply rates are low across the board — review your ICP targeting and message personalization',
     );
   }
 
-  return recs.slice(0, 3);
+  return recs.slice(0, MAX_RECOMMENDATIONS);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -205,7 +222,7 @@ function buildReportText(
 
   // Top campaigns
   const withSends = campaigns.filter((c) => c.sent > 0);
-  const topTwo = withSends.slice(0, 2);
+  const topTwo = withSends.slice(0, TOP_CAMPAIGNS_TO_SHOW);
   if (topTwo.length > 0) {
     lines.push('--- Top Campaigns This Week ---');
     topTwo.forEach((c, i) => {
@@ -217,9 +234,7 @@ function buildReportText(
   }
 
   // Needs attention (active campaigns with 0 replies after 20+ sends)
-  const stalled = campaigns.filter(
-    (c) => c.status === 'active' && c.replied === 0 && c.sent >= 20,
-  );
+  const stalled = campaigns.filter(isStalledCampaign);
   if (stalled.length > 0) {
     lines.push('--- Needs Attention ---');
     for (const c of stalled) {
