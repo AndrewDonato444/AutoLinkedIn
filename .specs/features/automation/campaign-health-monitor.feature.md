@@ -110,7 +110,7 @@ And the report includes "Campaign 'Rebound Campaign' is active again — previou
 Given the campaign health monitor runs successfully
 When the report is complete
 Then it saves a snapshot to `data/health-snapshots/{date}.json`
-And the snapshot includes: date, campaign IDs with their alert statuses, reply rates, and last-send timestamps
+And the snapshot includes: date, campaign IDs with their alert statuses, reply rates, and total sends
 And the snapshot can be loaded on the next run for comparison
 
 ### Scenario: Schedule campaign health monitor via cron
