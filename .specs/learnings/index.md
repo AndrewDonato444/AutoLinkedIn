@@ -9,6 +9,18 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Warm Lead List Builder** — the most hard-won lessons from this session:
+
+1. **`Record<string, unknown>` for optional filter accumulation** (api.md): Build the API filter object by conditionally assigning keys only when present. Keeps `undefined` values out of the request object, which some APIs treat differently from absent keys. Cast to the typed parameter at the call site.
+
+2. **Env-dependent defaults: floor assertions not exact values** (testing.md): When a function reads numeric config from `process.env`, tests can't know if `.env.local` overrides it. Use `toBeGreaterThanOrEqual(minDefault)` instead of `toBe(exactValue)` — add a comment explaining the range.
+
+3. **Separate `makeMockClientThrowing` factory** (testing.md): A dedicated factory for error-path mocks (`makeMockClientThrowing(error)`) keeps tests readable alongside the standard `makeMockClient(pages[])`. Avoids repeating `.mockRejectedValue()` inline at every error call site.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Campaign Performance Analytics** — the most hard-won lessons from this session:
 
 1. **Sort for display ≠ sort for analysis** (spec learnings): Always preserve original API order for trend analysis. Passing the reply-rate-sorted array to `computeTrend` makes "latest" always the worst performer, producing a false "declining" signal. Filter `completedCampaigns` from pre-sort `allMetrics`, then pass both arrays separately.
