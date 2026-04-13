@@ -9,6 +9,22 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Pipeline Overview Report** — the most hard-won lessons from this session:
+
+1. **`Promise.all()` for parallel API fan-out** (api.md): When N endpoints are independent, fetch them in one `Promise.all()` and destructure the tuple. Sequential awaits are N× slower for no benefit.
+
+2. **`do...while` for pagination** (api.md): Always fetches at least one page before checking the termination condition (`allLeads.length < total`). Cleaner than while-with-pre-check, avoids off-by-one on single-page results.
+
+3. **Guard both `undefined` and `null` for optional API fields** (api.md): APIs may return `null` explicitly or omit the field. Check `score === undefined || score === null` — loose equality `== null` works but is ambiguous; a single `=== undefined` check silently misses explicit nulls.
+
+4. **Mock client factory + `asClient()` cast** (testing.md): `makeMockClient(overrides)` accepts a `Partial<{method: () => Promise<T>}>` map; unspecified methods default to empty stubs. A separate `asClient()` helper applies the `as unknown as GojiBerryClient` cast once, keeping test bodies readable.
+
+5. **Pure function aggregation after async fetch**: Split the async fetch phase from synchronous aggregation (`computeScoreTiers`, `aggregateCampaigns`, `generateSummary`). Pure functions on already-fetched data are trivially unit-testable without async machinery.
+
+---
+
+
+
 **Lead Enrichment + Intent Scoring** — the most hard-won lessons from this session:
 
 1. **Apostrophe in `describe()` breaks esbuild** (testing.md): Single-quotes inside describe labels cause esbuild parse errors. Use double-quotes for any describe block with a possessive apostrophe.
