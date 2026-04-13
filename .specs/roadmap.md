@@ -12,12 +12,12 @@
 
 | Phase | Features | Done | Status |
 |-------|----------|------|--------|
-| 1: Core Pipeline | 4 | 0 | ⬜ |
+| 1: Core Pipeline | 4 | 1 | 🔄 |
 | 2: Intelligence Layer | 4 | 0 | ⬜ |
 | 3: Automation & Scheduling | 4 | 0 | ⬜ |
 | 4: Optimization Loop | 3 | 0 | ⬜ |
 
-**Overall: 0/15 (0%)**
+**Overall: 1/15 (7%) — Last updated: 2026-04-13**
 
 ---
 
@@ -27,7 +27,7 @@ Get leads from the web into GojiBerry with personalized messages. The minimum vi
 
 | # | Feature | Source | Complexity | Deps | Status |
 |---|---------|--------|------------|------|--------|
-| 1 | GojiBerry API client | vision | M | - | ⬜ |
+| 1 | GojiBerry API client | vision | M | - | ✅ |
 | 2 | ICP-based lead discovery | vision | M | 1 | ⬜ |
 | 3 | Lead enrichment + intent scoring | vision | M | 1 | ⬜ |
 | 4 | Personalized message generation | vision | M | 1,3 | ⬜ |
