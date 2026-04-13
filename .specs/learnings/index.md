@@ -10,6 +10,20 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Morning Briefing** — the most hard-won lessons from this session:
+
+1. **Filter-aware mock implementations for call-argument isolation** (testing.md): When the same mock method is called with different filter args (e.g., once without `scoreFrom`, once with it), the mock must apply those filters. A naive "return everything" mock makes "no warm leads" and "has warm leads" scenarios impossible to isolate without separate describe blocks.
+
+2. **Argument-conditional `mockImplementation` for partial failure** (testing.md): Partial failure tests where one call fails and another succeeds are cleanest when the mock inspects the call's arguments rather than a call counter — `if (filters.scoreFrom != null) throw error`. More precise and more readable than counting call order.
+
+3. **Composed builder DTOs may strip needed fields** (spec learnings): `buildWarmLeadList` maps results through `toWarmLead`, dropping `personalizedMessages`. A second `searchLeads` call is required to check message status. Check whether a builder's return type carries every field before assuming one call is enough.
+
+4. **Spec output format section is the ground truth over scenario descriptions** (general.md): When a scenario description and the Output Format template conflict, the template wins — it was written with the actual data model in mind. Reconcile scenario wording to match the format, not the other way around, during drift check.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Weekly Performance Report** — the most hard-won lessons from this session:
 
 1. **Real temp dirs for filesystem injection tests** (testing.md): Use `os.mkdtempSync` instead of mocking `fs`. An empty tmpdir correctly triggers "no previous snapshot" paths; write fixture files into it to simulate "previous week exists". Pairs with `_snapshotDir` injection using the same `_` prefix convention as `_client`.

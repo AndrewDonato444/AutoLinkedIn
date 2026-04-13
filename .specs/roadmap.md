@@ -14,10 +14,10 @@
 |-------|----------|------|--------|
 | 1: Core Pipeline | 4 | 3 | ⏸️ |
 | 2: Intelligence Layer | 4 | 3 | ⏸️ |
-| 3: Automation & Scheduling | 4 | 1 | 🔄 |
+| 3: Automation & Scheduling | 4 | 2 | 🔄 |
 | 4: Optimization Loop | 3 | 0 | ⬜ |
 
-**Overall: 7/15 (47%) — Last updated: 2026-04-13**
+**Overall: 8/15 (53%) — Last updated: 2026-04-13**
 
 ---
 
@@ -71,7 +71,7 @@ Make it hands-off. Set up recurring automations so the user only approves.
 |---|---------|--------|------------|------|--------|
 | 20 | Daily lead scan automation | vision | M | 2,3,4 | ⬜ |
 | 21 | Weekly performance report | vision | S | 11 | ✅ |
-| 22 | Morning briefing | vision | M | 10,13 | ⬜ |
+| 22 | Morning briefing | vision | M | 10,13 | ✅ |
 | 23 | Campaign health monitor | vision | S | 11 | ⬜ |
 
 **Feature 20 — Daily lead scan automation**: Scheduled task (cron via `DAILY_SCAN_CRON`) that runs the full pipeline: discover → create → enrich → score → generate messages. Outputs a summary for user review. Respects `DAILY_LEAD_SCAN_LIMIT`. This is the core "wake up to leads ready" automation.
