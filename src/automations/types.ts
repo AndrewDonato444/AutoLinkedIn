@@ -1,3 +1,5 @@
+import type { Lead } from '../api/types.js';
+
 export interface DiscoveredLead {
   firstName: string;
   lastName: string;
@@ -14,3 +16,18 @@ export interface DiscoveryResult {
   failed: { lead: DiscoveredLead; error: string }[];
   limitExceeded: number;
 }
+
+export interface IntentResearch {
+  fitScore: number;        // 1-100, holistic ICP + intent score
+  intentSignals: string[]; // Human-readable buying signals
+  reasoning: string;       // Why this score (for debugging/logging)
+}
+
+export interface EnrichmentResult {
+  enriched: { lead: Lead; research: IntentResearch }[];
+  failed: { lead: Lead; error: string }[];
+  skipped: Lead[];
+  remaining: number; // Unenriched leads still in GojiBerry
+}
+
+export type WebResearchFn = (lead: Lead, icpDescription: string) => Promise<IntentResearch>;
