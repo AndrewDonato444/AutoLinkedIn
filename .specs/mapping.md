@@ -19,6 +19,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Domain | Feature | Source | Tests | Components | Status |
 |--------|---------|--------|-------|------------|--------|
 | automation | [Campaign Health Monitor](.specs/features/automation/campaign-health-monitor.feature.md) | `src/automations/campaign-health-monitor.ts` | tests/automations/campaign-health-monitor.test.ts | - | implemented |
+| automation | [Daily Lead Scan Automation](.specs/features/automation/daily-lead-scan.feature.md) | `src/automations/daily-lead-scan.ts` | tests/automations/daily-lead-scan.test.ts | - | implemented |
 | automation | [Morning Briefing](.specs/features/automation/morning-briefing.feature.md) | `src/automations/morning-briefing.ts` | tests/automations/morning-briefing.test.ts | - | implemented |
 | automation | [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md) | `src/automations/weekly-performance-report.ts` | tests/automations/weekly-performance-report.test.ts | - | implemented |
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
@@ -40,8 +41,8 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | stub | 0 |
 | specced | 0 |
 | tested | 0 |
-| implemented | 12 |
-| **Total** | **12** |
+| implemented | 13 |
+| **Total** | **13** |
 
 ---
 
@@ -62,17 +63,18 @@ _None_
 ### Implemented
 
 - [Campaign Health Monitor](.specs/features/automation/campaign-health-monitor.feature.md)
+- [Daily Lead Scan Automation](.specs/features/automation/daily-lead-scan.feature.md)
 - [Morning Briefing](.specs/features/automation/morning-briefing.feature.md)
 - [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md)
 - [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md)
 - [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md)
 - [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md)
+- [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
 - [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md)
 - [Warm Lead List Builder](.specs/features/intelligence-layer/warm-lead-list-builder.feature.md)
 - [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md)
 - [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md)
 - [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md)
-- [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
 
 ---
 
