@@ -59,22 +59,21 @@ const FETCH_PAGE_SIZE = 250;
 // Env helpers
 // ──────────────────────────────────────────────────────────────────────────────
 
-function getTopLeadsCount(): number {
-  const env = process.env.MORNING_BRIEFING_TOP_LEADS;
-  if (env) {
-    const parsed = Number(env);
+function parseEnvInt(envVar: string, defaultValue: number): number {
+  const raw = process.env[envVar];
+  if (raw) {
+    const parsed = Number(raw);
     if (!Number.isNaN(parsed)) return parsed;
   }
-  return DEFAULT_TOP_LEADS;
+  return defaultValue;
+}
+
+function getTopLeadsCount(): number {
+  return parseEnvInt('MORNING_BRIEFING_TOP_LEADS', DEFAULT_TOP_LEADS);
 }
 
 function getMinIntentScore(): number {
-  const env = process.env.MIN_INTENT_SCORE;
-  if (env) {
-    const parsed = Number(env);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  return DEFAULT_MIN_SCORE;
+  return parseEnvInt('MIN_INTENT_SCORE', DEFAULT_MIN_SCORE);
 }
 
 function getCronExpr(): string {
@@ -184,6 +183,29 @@ function nextBriefingDate(cronExpr: string): string {
   next.setDate(now.getDate() + daysAhead);
   next.setHours(hour, minute, 0, 0);
   return next.toDateString();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Messages map builder
+// ──────────────────────────────────────────────────────────────────────────────
+
+async function buildMessagesMap(
+  client: BriefingClient,
+  minScore: number,
+): Promise<{ messagesMap: Map<string, boolean>; leadsWithMessages: number }> {
+  const messagesMap = new Map<string, boolean>();
+  let leadsWithMessages = 0;
+  try {
+    const rawResult = await client.searchLeads({ scoreFrom: minScore, pageSize: FETCH_PAGE_SIZE });
+    for (const lead of rawResult.leads) {
+      const hasMessages = (lead.personalizedMessages?.length ?? 0) > 0;
+      messagesMap.set(lead.id, hasMessages);
+      if (hasMessages) leadsWithMessages++;
+    }
+  } catch {
+    // Non-critical — continue without per-lead message status
+  }
+  return { messagesMap, leadsWithMessages };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -323,20 +345,10 @@ export async function generateMorningBriefing(options?: {
   }
 
   // Step 3: Check personalizedMessages on warm leads (best-effort, non-critical)
-  const messagesMap = new Map<string, boolean>();
-  let leadsWithMessages = 0;
-  if (warmLeadResult && warmLeadResult.leads.length > 0) {
-    try {
-      const rawResult = await client.searchLeads({ scoreFrom: minScore, pageSize: FETCH_PAGE_SIZE });
-      for (const lead of rawResult.leads) {
-        const hasMessages = (lead.personalizedMessages?.length ?? 0) > 0;
-        messagesMap.set(lead.id, hasMessages);
-        if (hasMessages) leadsWithMessages++;
-      }
-    } catch {
-      // Non-critical — continue without per-lead message status
-    }
-  }
+  const { messagesMap, leadsWithMessages } =
+    warmLeadResult && warmLeadResult.leads.length > 0
+      ? await buildMessagesMap(client, minScore)
+      : { messagesMap: new Map<string, boolean>(), leadsWithMessages: 0 };
 
   // Build top leads list
   const allWarmLeads = warmLeadResult?.leads ?? [];
