@@ -25,7 +25,7 @@ function buildLeadDescription(lead: Lead): string {
     .join(' ');
 }
 
-function resolvePositiveNumber(optionValue: number | undefined, envKey: string, defaultValue: number): number {
+export function resolvePositiveNumber(optionValue: number | undefined, envKey: string, defaultValue: number): number {
   const raw = optionValue ?? Number(process.env[envKey] ?? defaultValue);
   return Number.isFinite(raw) && raw > 0 ? raw : defaultValue;
 }
