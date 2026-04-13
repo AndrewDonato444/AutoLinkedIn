@@ -6,9 +6,9 @@ export class GojiBerryError extends Error {
 }
 
 export class ConfigError extends GojiBerryError {
-  constructor() {
+  constructor(message?: string) {
     super(
-      'Missing GOJIBERRY_API_KEY in .env.local — grab your API key from GojiBerry settings',
+      message ?? 'Missing GOJIBERRY_API_KEY in .env.local — grab your API key from GojiBerry settings',
     );
     this.name = 'ConfigError';
   }
