@@ -31,6 +31,7 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | intelligence | [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md) | `src/automations/pipeline-overview-report.ts` | tests/automations/pipeline-overview-report.test.ts | - | implemented |
 | optimization | [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md) | `src/automations/icp-refinement.ts` | tests/automations/icp-refinement.test.ts | - | implemented |
 | optimization | [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md) | `src/automations/lead-quality-feedback-loop.ts` | tests/automations/lead-quality-feedback-loop.test.ts | - | implemented |
+| optimization | [Message Style Optimization](.specs/features/optimization/message-style-optimization.feature.md) | `src/automations/message-style-optimization.ts` | tests/automations/message-style-optimization.test.ts | - | specced |
 
 ---
 
@@ -39,10 +40,10 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | Status | Count |
 |--------|-------|
 | stub | 0 |
-| specced | 0 |
+| specced | 1 |
 | tested | 0 |
 | implemented | 13 |
-| **Total** | **13** |
+| **Total** | **14** |
 
 ---
 
@@ -54,7 +55,7 @@ _None_
 
 ### Specced
 
-_None_
+- [Message Style Optimization](.specs/features/optimization/message-style-optimization.feature.md)
 
 ### Tested
 
