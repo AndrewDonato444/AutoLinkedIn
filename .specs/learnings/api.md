@@ -163,6 +163,45 @@ Then just `slice(0, limit)` the array. This is simpler, produces better results 
 
 ---
 
+## Extract a `resolvePositiveNumber` helper when option-override + env + default repeats
+
+When a function parameter and an env var can both override a numeric default, the inline pattern repeats across multiple values. Extract a helper:
+
+```ts
+// Repeated inline (brittle, hard to read):
+const batchSize = options?.batchSize ?? Number(process.env.ENRICHMENT_BATCH_SIZE || 25);
+const minScore = options?.minIntentScore ?? Number(process.env.MIN_INTENT_SCORE || 50);
+
+// Named helper (clear, DRY):
+function resolvePositiveNumber(
+  optionValue: number | undefined,
+  env: string | undefined,
+  defaultValue: number
+): number {
+  const n = optionValue ?? Number(env || defaultValue);
+  return Number.isFinite(n) && n > 0 ? n : defaultValue;
+}
+```
+
+The helper also handles the `Number("")` = 0 gotcha (previously documented) in one place.
+
+---
+
+## Auth error split behavior by loop position — document each phase in specs
+
+When an automation has a fetch phase + a per-item processing loop, AuthError behavior differs by location:
+
+- **Before the loop** (e.g., `searchLeads`): AuthError propagates naturally — no catch, no log, no console output.
+- **Inside the loop** (e.g., `updateLead`): AuthError can be caught per-item, logged, and re-thrown or skipped.
+
+Specs written at a high level ("auth fails → outputs message") will diverge from the implementation. Always document:
+- Which phase the error occurs in
+- Whether it's logged before re-throwing or silently propagated
+
+The drift check will catch this, but writing it correctly upfront avoids the reconciliation pass.
+
+---
+
 ## Don't duplicate `sleep` across files — just inline it
 
 A one-line `sleep` function is so small that creating a shared utility file adds more complexity (import paths, another file to maintain) than it saves. Each file that needs it can define it locally:

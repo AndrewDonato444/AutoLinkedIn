@@ -9,6 +9,24 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Lead Enrichment + Intent Scoring** — the most hard-won lessons from this session:
+
+1. **Apostrophe in `describe()` breaks esbuild** (testing.md): Single-quotes inside describe labels cause esbuild parse errors. Use double-quotes for any describe block with a possessive apostrophe.
+
+2. **Stateful mocks with call counters** (testing.md): Use a closure counter to simulate "fails on Nth call" — cleaner than chaining many `.mockResolvedValueOnce()` calls.
+
+3. **TypeScript union type narrowing after `.find()`** (testing.md): A second `if (block.type !== 'text') return;` after `.find()` looks redundant but is required for TypeScript to narrow SDK union types. Never remove it.
+
+4. **Choose mock totals so approximated counts work out** (testing.md): When `remaining = page.total - page.leads.length` is an approximation, verify `mockTotal - batchSize === expectedRemaining` before writing assertions.
+
+5. **Extract `resolvePositiveNumber` for repeated option→env→default pattern** (api.md): When multiple numeric settings follow the same override hierarchy, one named helper handles the `Number("")` guard and keeps the logic DRY.
+
+6. **Auth errors split by loop position — spec each phase** (api.md): Errors before the loop propagate silently; errors inside the loop can be caught and logged. Specs saying "auth fails → outputs message" will diverge from implementation unless each phase is documented separately.
+
+---
+
+
+
 **ICP-Based Lead Discovery** — the most hard-won lessons from this session:
 
 1. **Function injection beats SDK mocking** (testing.md): Inject a typed `WebSearchFn` instead of mocking the Anthropic SDK constructor. 33 tests, zero SDK mocking. The `_` prefix marks internal/test-only parameters.
