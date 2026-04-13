@@ -43,6 +43,10 @@ export interface PipelineOverviewReport {
 
 const FETCH_PAGE_SIZE = 250;
 
+function pluralize(count: number, singular: string): string {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+}
+
 type PipelineClient = Pick<
   GojiBerryClient,
   'searchLeads' | 'getIntentTypeCounts' | 'getCampaigns' | 'getLists'
@@ -118,9 +122,8 @@ function generateSummary(
   const sentences: string[] = [];
 
   // Sentence 1: contact total and score tier breakdown
-  const contactWord = total === 1 ? 'contact' : 'contacts';
   sentences.push(
-    `Your pipeline has ${total} ${contactWord} — ` +
+    `Your pipeline has ${pluralize(total, 'contact')} — ` +
       `${byScoreTier.hot} hot, ${byScoreTier.warm} warm, ${byScoreTier.cool} cool, ` +
       `${byScoreTier.cold} cold, and ${byScoreTier.unscored} unscored.`,
   );
@@ -129,8 +132,7 @@ function generateSummary(
   const intentEntries = Object.entries(byIntentType).sort(([, a], [, b]) => b - a);
   if (intentEntries.length > 0) {
     const [topType, topCount] = intentEntries[0];
-    const topWord = topCount === 1 ? 'contact' : 'contacts';
-    sentences.push(`The top intent type is '${topType}' with ${topCount} ${topWord}.`);
+    sentences.push(`The top intent type is '${topType}' with ${pluralize(topCount, 'contact')}.`);
   } else {
     sentences.push('No intent data available.');
   }
@@ -142,17 +144,15 @@ function generateSummary(
     const statusParts = Object.entries(campaigns.byStatus)
       .map(([status, count]) => `${count} ${status}`)
       .join(', ');
-    const campaignWord = campaigns.total === 1 ? 'campaign' : 'campaigns';
-    sentences.push(`You have ${campaigns.total} ${campaignWord}: ${statusParts}.`);
+    sentences.push(`You have ${pluralize(campaigns.total, 'campaign')}: ${statusParts}.`);
 
     // Sentence 4: reply rate (only when messages were sent)
     if (campaigns.metrics.totalSent > 0) {
       const replyRate = Math.round(
         (campaigns.metrics.totalReplied / campaigns.metrics.totalSent) * 100,
       );
-      const messageWord = campaigns.metrics.totalSent === 1 ? 'message' : 'messages';
       sentences.push(
-        `Across all campaigns, ${campaigns.metrics.totalSent} ${messageWord} sent with a ${replyRate}% reply rate.`,
+        `Across all campaigns, ${pluralize(campaigns.metrics.totalSent, 'message')} sent with a ${replyRate}% reply rate.`,
       );
     }
   }
