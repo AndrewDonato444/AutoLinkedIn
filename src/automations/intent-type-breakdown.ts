@@ -100,6 +100,25 @@ function computeMetrics(intentType: string, leads: Lead[]): IntentTypeMetrics {
   };
 }
 
+function groupLeadsByIntentType(leads: Lead[]): Record<string, Lead[]> {
+  const groups: Record<string, Lead[]> = {};
+  for (const lead of leads) {
+    const type = lead.intentType ?? 'unclassified';
+    if (!groups[type]) groups[type] = [];
+    groups[type].push(lead);
+  }
+  return groups;
+}
+
+function rankByFitScore(types: IntentTypeMetrics[]): IntentTypeMetrics[] {
+  return [...types].sort((a, b) => {
+    if (a.averageFitScore === null && b.averageFitScore === null) return 0;
+    if (a.averageFitScore === null) return 1;
+    if (b.averageFitScore === null) return -1;
+    return b.averageFitScore - a.averageFitScore;
+  });
+}
+
 function buildReportText(
   allTypes: IntentTypeMetrics[],
   comparableTypes: IntentTypeMetrics[],
@@ -146,18 +165,12 @@ function buildReportText(
   lines.push('');
 
   // Signal quality section
-  const high = nonUnclassified
-    .filter((t) => t.signalQuality === 'high')
-    .map((t) => t.intentType);
-  const medium = nonUnclassified
-    .filter((t) => t.signalQuality === 'medium')
-    .map((t) => t.intentType);
-  const low = nonUnclassified
-    .filter((t) => t.signalQuality === 'low')
-    .map((t) => t.intentType);
-  const needsScoring = nonUnclassified
-    .filter((t) => t.signalQuality === 'needs_scoring')
-    .map((t) => t.intentType);
+  const byQuality = (q: IntentTypeMetrics['signalQuality']): string[] =>
+    nonUnclassified.filter((t) => t.signalQuality === q).map((t) => t.intentType);
+  const high = byQuality('high');
+  const medium = byQuality('medium');
+  const low = byQuality('low');
+  const needsScoring = byQuality('needs_scoring');
 
   lines.push('--- Signal Quality ---');
   if (high.length > 0) lines.push(`  High signal: ${high.join(', ')}`);
@@ -222,12 +235,7 @@ export async function analyzeIntentTypes(options?: {
   }
 
   // Group contacts by intent type (unclassified = no intentType)
-  const groups: Record<string, Lead[]> = {};
-  for (const lead of leads) {
-    const type = lead.intentType ?? 'unclassified';
-    if (!groups[type]) groups[type] = [];
-    groups[type].push(lead);
-  }
+  const groups = groupLeadsByIntentType(leads);
 
   // Compute metrics for each group
   const allTypes: IntentTypeMetrics[] = Object.entries(groups).map(([intentType, groupLeads]) =>
@@ -238,12 +246,7 @@ export async function analyzeIntentTypes(options?: {
   const comparableTypes = allTypes.filter((t) => t.intentType !== 'unclassified');
 
   // Rank comparable types by average fit score (highest first; nulls last)
-  const rankedTypes = [...comparableTypes].sort((a, b) => {
-    if (a.averageFitScore === null && b.averageFitScore === null) return 0;
-    if (a.averageFitScore === null) return 1;
-    if (b.averageFitScore === null) return -1;
-    return b.averageFitScore - a.averageFitScore;
-  });
+  const rankedTypes = rankByFitScore(comparableTypes);
 
   // Only set top/bottom when there are at least 2 comparable types
   const topType = rankedTypes.length > 1 ? rankedTypes[0] : null;
