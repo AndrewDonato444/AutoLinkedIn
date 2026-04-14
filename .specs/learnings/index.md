@@ -10,6 +10,20 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 
 ## Recent Learnings (2026-04-13)
 
+**Message Style Optimization** — the most hard-won lessons from this session:
+
+1. **Gate counts must target the filtered subset** (general.md): The "insufficient messaged leads" gate must count `allLeadsWithMessages.length` — leads WITH `personalizedMessages` — not `allLeadsResult.leads.length`. Zero replies check uses `repliedLeadsWithMessages` (replied AND have messages). Counting the raw fetch inflates thresholds and misleads the user.
+
+2. **Output format: all impact category branches must be spec'd** (general.md): The `Hurts reply rate:` block in Signal Effectiveness was missing from the spec. When a section renders a typed enum (drives/no_impact/hurts), include ALL variants in the output template — even unlikely negatives. Drift check will catch omissions but spec-time inclusion is faster.
+
+3. **`EMPTY_ANALYSIS` constant for static multi-branch fallback objects** (general.md): When an async helper has multiple early-return paths that all return the same empty structure, extract a module-level constant rather than constructing inline. Use a factory (e.g., `makeEmptyReport()`) when at least one field varies per call; use a constant when fully static.
+
+4. **Injectable analysis fn pattern → 44/44 on first run** (testing.md): `_analyzePatterns?: MessagePatternAnalysisFn` follows the same 4-property pattern as `_webSearch`, `_messageGenerator`, `_analyzeProfiles`. When all four properties are in place (named type alias, exported default, `_` prefix, factory helper), zero SDK mocking is needed and tests pass on first run.
+
+---
+
+## Recent Learnings (2026-04-13)
+
 **Daily Lead Scan Automation** — the most hard-won lessons from this session:
 
 1. **Full-function injection for orchestrators** (general.md): Inject `_discoverLeads`, `_enrichLeads`, `_generateMessages` — not sub-dependencies. Keeps the orchestrator as a pure coordinator; three mocks cover 40 tests.
