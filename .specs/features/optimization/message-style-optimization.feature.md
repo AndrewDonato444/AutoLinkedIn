@@ -333,6 +333,28 @@ export async function optimizeMessageStyle(
 - `Lead` type from `src/api/types.ts` — needs `personalizedMessages` field
 - Anthropic SDK — for message pattern analysis (LLM-delegated, not rule-based)
 
+## Learnings
+
+### Gate counts must target the filtered subset, not the total fetched set
+
+The "insufficient messaged leads" gate counts `allLeadsWithMessages.length` — leads that have `personalizedMessages` — **not** `allLeadsResult.leads.length` (all fetched leads). Similarly, `totalReplied` uses `repliedLeadsWithMessages.length` (replied leads who also have a stored message), not `repliedResult.leads.length`.
+
+This matters because the gate is asking "do we have enough messages to analyze patterns?" — not "did we fetch enough leads?" A lead without a `personalizedMessages` entry cannot contribute to style analysis, so counting them inflates both thresholds and produces misleading output ("You have 100 messaged leads" when only 6 have actual stored messages).
+
+Pattern: when a gate is about "enough data of a specific type", count the filtered subset that has that data — not the broader fetch that may include incomplete records.
+
+### `patternsToWatch` is populated by the analysis fn, not the orchestrator
+
+The `patternsToWatch` field is returned directly from `analyzePatterns()` — the orchestrator does not recompute it. The only post-analysis step the orchestrator applies is the confidence override for `hookStyles` based on sample size < `MIN_SAMPLE_FOR_HIGH_CONFIDENCE`.
+
+This keeps business logic (what qualifies as a "pattern to watch") in the analysis function where it can be tested with injectable mocks. The orchestrator is a pure coordinator.
+
+### `EMPTY_ANALYSIS` constant for static multi-branch fallback in async helpers
+
+`defaultAnalyzePatterns` has three early-return points (no text block, no JSON match, JSON parse error) that all return the same empty analysis structure. Extract this as a module-level `EMPTY_ANALYSIS` constant rather than constructing it inline at each site. The constant is spread-safe (all array fields use `as TypeName[]` to preserve element types).
+
+This is distinct from `makeEmptyReport()` — which is a factory called with varying arguments. `EMPTY_ANALYSIS` is purely static and shared across all fallback paths.
+
 ## Design Decisions
 
 ### LLM-delegated pattern analysis (not regex-based)

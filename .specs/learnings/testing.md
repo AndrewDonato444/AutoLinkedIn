@@ -427,6 +427,20 @@ This keeps the orchestrator type-correct even when the sibling's options change.
 
 ---
 
+## Injectable analysis function pattern achieves zero-error first runs
+
+The `_analyzePatterns?: MessagePatternAnalysisFn` injection pattern follows the same structure as `_webSearch`, `_messageGenerator`, and `_analyzeProfiles` from prior features. When these injectable patterns are applied consistently from the start, the implementation achieves 44/44 tests passing on first run with no debugging.
+
+Key properties of the stable pattern:
+- Source declares a named `FunctionType` alias (e.g., `MessagePatternAnalysisFn`) exported alongside the interface types
+- The real implementation (`defaultAnalyzePatterns`) is a separate exported function, not a closure
+- The option key uses `_` prefix: `_analyzePatterns`
+- Tests use a `makeAnalyzePatterns()` helper that returns a `vi.fn()` with the correct return shape
+
+When all four properties are in place, zero SDK mocking is needed and test setup is one factory call. Confirmed across: lead discovery (`_webSearch`), message generation (`_messageGenerator`), ICP refinement (`_analyzeProfiles`), message style optimization (`_analyzePatterns`).
+
+---
+
 ## String output assertions: test against the exact output string, not an approximation
 
 When asserting on human-readable summary strings, the test must match the exact format the function produces — not a plausible approximation. A test expected `'5 enriched'` but the actual output was `'5 leads enriched, 3 failed'`. The assertion passed a similar-looking string check and the mismatch went undetected until a subsequent failure exposed it.

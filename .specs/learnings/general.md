@@ -302,6 +302,73 @@ Fix during drift check: remove the clause entirely. Don't add stub code just to 
 
 ---
 
+## Gate counts must target the filtered subset, not the total fetched set
+
+When a data-quantity gate asks "do we have enough X to proceed?", count the subset that has X — not the broader fetch that may include incomplete records.
+
+```ts
+// WRONG — counts all fetched leads, including those without stored messages
+if (allLeadsResult.leads.length < minMessages) { return earlyReport; }
+
+// RIGHT — counts only leads with personalizedMessages (the data we actually need)
+const allLeadsWithMessages = allLeadsResult.leads.filter(
+  (l) => l.personalizedMessages && l.personalizedMessages.length > 0,
+);
+if (allLeadsWithMessages.length < minMessages) { return earlyReport; }
+```
+
+The same applies to reply counting: use `repliedLeadsWithMessages.length` (replied leads who also have a stored message) rather than `repliedResult.leads.length`. A lead with no stored message cannot contribute to pattern analysis — counting it inflates the threshold check and produces misleading user output.
+
+**Pattern:** whenever a gate is about "enough data of a specific type", filter to that type first, then count. The gate message shown to the user should quote the filtered count, not the raw fetch count.
+
+---
+
+## `EMPTY_ANALYSIS` module-level constant for static multi-branch fallback objects
+
+When an async helper function has multiple early-return paths (e.g., no text block, no JSON match, parse error) that all return the same structurally identical empty object, extract it as a named module-level constant:
+
+```ts
+const EMPTY_ANALYSIS = {
+  hookStyles: [] as HookStyleAnalysis[],
+  lengthBuckets: [] as LengthBucket[],
+  avgLengthReplied: 0,
+  avgLengthNoReply: 0,
+  signalEffectiveness: [] as SignalEffectiveness[],
+  phrasesToAvoid: [] as PhraseAnalysis[],
+  patternsToWatch: [] as (HookStyleAnalysis | SignalEffectiveness)[],
+  recommendations: [] as StyleRecommendation[],
+};
+
+// Each early-return site becomes one line:
+if (!textBlock) return EMPTY_ANALYSIS;
+if (!jsonMatch) return EMPTY_ANALYSIS;
+try { return JSON.parse(jsonMatch[0]); } catch { return EMPTY_ANALYSIS; }
+```
+
+The `as TypeName[]` casts on array fields preserve element types so the constant is spread-safe downstream. This is distinct from a factory function (`makeEmptyReport(args)`) — use a constant when the object is truly static with no per-call variation. Use a factory when at least one field varies by call site.
+
+---
+
+## Output format: all impact category branches must be explicitly spec'd
+
+When an output section has a multi-way impact classification (e.g., `drives_replies / no_impact / hurts`), the spec's Output Format template must include **all** branches — even the ones that seem unlikely or negative.
+
+The `Hurts reply rate:` block in Signal Effectiveness was missing from the spec's output template. It was added during implementation as an obvious third branch of the impact enum, but never backported to the spec. The drift check caught it.
+
+```
+--- Signal Effectiveness ---
+  Drives replies:
+    {signal_type}: {rate}% reply rate when referenced
+  No impact:
+    {signal_type}: {rate}% reply rate — same as baseline
+  Hurts reply rate:           ← must be in spec even if corner case
+    {signal_type}: {rate}% reply rate
+```
+
+**Rule:** when speccing a section that renders a filtered view of a typed enum, include a template line for every enum variant — even "hurts", "not working", "low confidence". Omitting them creates inevitable drift when implementation adds the missing branch.
+
+---
+
 ## `status` field value and display format can intentionally differ — document both
 
 A data model's `status` field (machine-readable, for serialization and logging) can legitimately differ from the display string shown to the user. Example:
