@@ -27,11 +27,12 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | core-pipeline | [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
 | core-pipeline | [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md) | `src/automations/message-generation.ts` | tests/automations/message-generation.test.ts | - | implemented |
 | intelligence-layer | [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md) | `src/automations/campaign-performance-analytics.ts` | tests/automations/campaign-performance-analytics.test.ts | - | implemented |
+| intelligence-layer | [Intent Type Breakdown](.specs/features/intelligence-layer/intent-type-breakdown.feature.md) | `src/automations/intent-type-breakdown.ts` | tests/automations/intent-type-breakdown.test.ts | - | stub |
 | intelligence-layer | [Warm Lead List Builder](.specs/features/intelligence-layer/warm-lead-list-builder.feature.md) | `src/automations/warm-lead-list-builder.ts` | tests/automations/warm-lead-list-builder.test.ts | - | implemented |
 | intelligence | [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md) | `src/automations/pipeline-overview-report.ts` | tests/automations/pipeline-overview-report.test.ts | - | implemented |
 | optimization | [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md) | `src/automations/icp-refinement.ts` | tests/automations/icp-refinement.test.ts | - | implemented |
 | optimization | [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md) | `src/automations/lead-quality-feedback-loop.ts` | tests/automations/lead-quality-feedback-loop.test.ts | - | implemented |
-| optimization | [Message Style Optimization](.specs/features/optimization/message-style-optimization.feature.md) | `src/automations/message-style-optimization.ts` | tests/automations/message-style-optimization.test.ts | - | specced |
+| optimization | [Message Style Optimization](.specs/features/optimization/message-style-optimization.feature.md) | `src/automations/message-style-optimization.ts` | tests/automations/message-style-optimization.test.ts | - | implemented |
 
 ---
 
@@ -39,11 +40,11 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 
 | Status | Count |
 |--------|-------|
-| stub | 0 |
-| specced | 1 |
+| stub | 1 |
+| specced | 0 |
 | tested | 0 |
-| implemented | 13 |
-| **Total** | **14** |
+| implemented | 14 |
+| **Total** | **15** |
 
 ---
 
@@ -51,11 +52,11 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 
 ### Stub
 
-_None_
+- [Intent Type Breakdown](.specs/features/intelligence-layer/intent-type-breakdown.feature.md)
 
 ### Specced
 
-- [Message Style Optimization](.specs/features/optimization/message-style-optimization.feature.md)
+_None_
 
 ### Tested
 
@@ -76,6 +77,7 @@ _None_
 - [Pipeline Overview Report](.specs/features/intelligence/pipeline-overview-report.feature.md)
 - [ICP Refinement from Results](.specs/features/optimization/icp-refinement-from-results.feature.md)
 - [Lead Quality Feedback Loop](.specs/features/optimization/lead-quality-feedback-loop.feature.md)
+- [Message Style Optimization](.specs/features/optimization/message-style-optimization.feature.md)
 
 ---
 
