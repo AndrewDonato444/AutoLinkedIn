@@ -1,4 +1,5 @@
+.env.local
 auto-sdd
-node_modules/
 dist/
 logs/
+node_modules/
