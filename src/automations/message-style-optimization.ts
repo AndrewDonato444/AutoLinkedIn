@@ -463,11 +463,11 @@ export async function optimizeMessageStyle(
   // Step 7: Extract message text from personalizedMessages[0]
   const repliedMessages = repliedLeadsWithMessages.map((lead) => ({
     lead,
-    message: lead.personalizedMessages![0],
+    message: lead.personalizedMessages![0].content,
   }));
   const nonRepliedMessages = nonRepliedLeadsWithMessages.map((lead) => ({
     lead,
-    message: lead.personalizedMessages![0],
+    message: lead.personalizedMessages![0].content,
   }));
 
   // Step 8: Delegate pattern analysis to Claude (or injected fn)

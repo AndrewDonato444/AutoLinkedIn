@@ -17,7 +17,9 @@ function makeLead(overrides: Partial<Lead> = {}): Lead {
     company: 'FinPay',
     jobTitle: 'CEO',
     location: 'San Francisco, CA',
+    fit: 'qualified',
     fitScore: 75,
+    profileBaseline: 'ICP Score: 75/100\nReasoning: Strong ICP match\nSignals: Recently raised Series A ($8M) | Hiring 3 SDRs | Posted about scaling outbound',
     intentSignals: ['Recently raised Series A ($8M)', 'Hiring 3 SDRs', 'Posted about scaling outbound'],
     createdAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -31,7 +33,9 @@ function makeWarmLeads(count: number, scoreBase = 60): Lead[] {
       firstName: 'Lead',
       lastName: `${i + 1}`,
       profileUrl: `https://linkedin.com/in/lead-${i + 1}`,
+      fit: 'qualified',
       fitScore: scoreBase + i,
+      profileBaseline: `ICP Score: ${scoreBase + i}/100\nReasoning: Good match\nSignals: Signal for lead ${i + 1}`,
       intentSignals: [`Signal for lead ${i + 1}`],
     }),
   );
@@ -143,7 +147,7 @@ describe('Scenario: Generate personalized messages for warm leads', () => {
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
-      expect.objectContaining({ personalizedMessages: [message] }),
+      expect.objectContaining({ personalizedMessages: [{ content: message, stepNumber: 1 }] }),
     );
   });
 
@@ -183,7 +187,7 @@ describe('Scenario: Identify leads that need messages', () => {
   });
 
   it('skips leads that already have personalizedMessages', async () => {
-    const alreadyMessaged = makeLead({ personalizedMessages: ['existing message'] });
+    const alreadyMessaged = makeLead({ personalizedMessages: [{ content: 'existing message', stepNumber: 1 }] });
     const fresh = makeLead({ id: 'lead-2', firstName: 'Bob', lastName: 'Jones', personalizedMessages: undefined });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([alreadyMessaged, fresh]),
@@ -199,8 +203,8 @@ describe('Scenario: Identify leads that need messages', () => {
   });
 
   it('skips leads with no intentSignals (not yet enriched)', async () => {
-    const noSignals = makeLead({ intentSignals: [] });
-    const withSignals = makeLead({ id: 'lead-2', firstName: 'Bob', lastName: 'Jones', intentSignals: ['Active hiring'] });
+    const noSignals = makeLead({ profileBaseline: undefined });
+    const withSignals = makeLead({ id: 'lead-2', firstName: 'Bob', lastName: 'Jones', profileBaseline: 'ICP Score: 70/100\nReasoning: Good match\nSignals: Active hiring' });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([noSignals, withSignals]),
     });
@@ -213,7 +217,7 @@ describe('Scenario: Identify leads that need messages', () => {
   });
 
   it('skips leads with undefined intentSignals', async () => {
-    const noSignals = makeLead({ intentSignals: undefined });
+    const noSignals = makeLead({ profileBaseline: undefined });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([noSignals]),
     });
@@ -227,9 +231,9 @@ describe('Scenario: Identify leads that need messages', () => {
   it('processes leads in score-descending order (warmest first)', async () => {
     const processOrder: number[] = [];
     const leads = [
-      makeLead({ id: 'lead-1', fitScore: 60 }),
-      makeLead({ id: 'lead-2', fitScore: 90 }),
-      makeLead({ id: 'lead-3', fitScore: 75 }),
+      makeLead({ id: 'lead-1', fitScore: 90, profileBaseline: 'ICP Score: 90/100\nReasoning: Strong match\nSignals: Signal A' }),
+      makeLead({ id: 'lead-2', fitScore: 75, profileBaseline: 'ICP Score: 75/100\nReasoning: Good match\nSignals: Signal B' }),
+      makeLead({ id: 'lead-3', fitScore: 60, profileBaseline: 'ICP Score: 60/100\nReasoning: Good match\nSignals: Signal C' }),
     ];
     const client = makeMockClient({
       searchLeads: async () => paginatedWith(leads),
@@ -270,7 +274,7 @@ describe('Scenario: Respect message batch size', () => {
   });
 
   it('processes warmest leads first when batch is limited', async () => {
-    const leads = makeWarmLeads(40); // scores 60-99
+    const leads = makeWarmLeads(40).sort((a, b) => (b.fitScore ?? 0) - (a.fitScore ?? 0)); // scores 99-60 descending
     const client = makeMockClient({
       searchLeads: async () => paginatedWith(leads, 40),
     });
@@ -464,7 +468,7 @@ describe('Scenario: Handle lead with minimal intent signals', () => {
   const ICP = 'Series A fintech founders';
 
   it('generates message for lead with only one intentSignal', async () => {
-    const lead = makeLead({ fitScore: 55, intentSignals: ['Active on LinkedIn'] });
+    const lead = makeLead({ fitScore: 55, intentSignals: ['Active on LinkedIn'], profileBaseline: 'ICP Score: 55/100' });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([lead]),
     });
@@ -477,7 +481,7 @@ describe('Scenario: Handle lead with minimal intent signals', () => {
 
   it('logs Low signal warning for lead with only one intentSignal', async () => {
     const consoleSpy = vi.spyOn(console, 'log');
-    const lead = makeLead({ firstName: 'Sam', lastName: 'Reed', fitScore: 55, intentSignals: ['Active on LinkedIn'] });
+    const lead = makeLead({ firstName: 'Sam', lastName: 'Reed', fitScore: 55, intentSignals: ['Active on LinkedIn'], profileBaseline: 'ICP Score: 55/100' });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([lead]),
     });
@@ -773,7 +777,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
     expect(result.generated).toHaveLength(1);
     expect(client.updateLead).toHaveBeenCalledWith(
       'specific-lead',
-      expect.objectContaining({ personalizedMessages: [message] }),
+      expect.objectContaining({ personalizedMessages: [{ content: message, stepNumber: 1 }] }),
     );
   });
 
@@ -795,7 +799,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
   });
 
   it('validates lead has intentSignals before generating', async () => {
-    const lead = makeLead({ intentSignals: [] });
+    const lead = makeLead({ fit: 'unknown' });
     const client = makeMockClient({
       getLead: async () => lead,
     });
@@ -809,7 +813,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
   });
 
   it('validates lead fitScore meets threshold before generating', async () => {
-    const lead = makeLead({ fitScore: 20 });
+    const lead = makeLead({ fit: 'unknown', fitScore: 20 });
     const client = makeMockClient({
       getLead: async () => lead,
     });
@@ -831,7 +835,7 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
   const ICP = 'Series A fintech founders';
 
   it('regenerates messages for leads that already have personalizedMessages', async () => {
-    const lead = makeLead({ personalizedMessages: ['old message'] });
+    const lead = makeLead({ personalizedMessages: [{ content: 'old message', stepNumber: 1 }] });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([lead]),
     });
@@ -844,7 +848,7 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
   });
 
   it('overwrites previous messages in GojiBerry when forceRegenerate is true', async () => {
-    const lead = makeLead({ personalizedMessages: ['old message'] });
+    const lead = makeLead({ personalizedMessages: [{ content: 'old message', stepNumber: 1 }] });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([lead]),
     });
@@ -855,13 +859,13 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
-      expect.objectContaining({ personalizedMessages: [newMessage] }),
+      expect.objectContaining({ personalizedMessages: [{ content: newMessage, stepNumber: 1 }] }),
     );
   });
 
   it('logs "Regenerated: {name}" for each regenerated lead', async () => {
     const consoleSpy = vi.spyOn(console, 'log');
-    const lead = makeLead({ firstName: 'Sarah', lastName: 'Chen', personalizedMessages: ['old message'] });
+    const lead = makeLead({ firstName: 'Sarah', lastName: 'Chen', personalizedMessages: [{ content: 'old message', stepNumber: 1 }] });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([lead]),
     });

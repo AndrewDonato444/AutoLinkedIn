@@ -279,7 +279,7 @@ describe('Scenario: First briefing with no previous snapshot', () => {
 describe('Scenario: Briefing with warm leads ready for outreach', () => {
   it('counts leads with messages correctly', async () => {
     const leads = [
-      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: ['Hi Jane, saw you posted a job...'] }),
+      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: [{ content: 'Hi Jane, saw you posted a job...', stepNumber: 1 }] }),
       makeLead({ id: 'l2', fitScore: 70, personalizedMessages: [] }),
     ];
     const client = makeMockClient(leads);
@@ -289,7 +289,7 @@ describe('Scenario: Briefing with warm leads ready for outreach', () => {
 
   it('next action says to open GojiBerry to approve when messages are ready', async () => {
     const leads = [
-      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: ['Hi Jane...'] }),
+      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: [{ content: 'Hi Jane...', stepNumber: 1 }] }),
     ];
     const client = makeMockClient(leads);
     const briefing = await generateMorningBriefing({ _client: client, _snapshotDir: makeTmpDir() });
@@ -299,7 +299,7 @@ describe('Scenario: Briefing with warm leads ready for outreach', () => {
 
   it('briefingText flags leads with messages as "Messages ready — approve in GojiBerry"', async () => {
     const leads = [
-      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: ['Hi Jane...'] }),
+      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: [{ content: 'Hi Jane...', stepNumber: 1 }] }),
     ];
     const client = makeMockClient(leads);
     const briefing = await generateMorningBriefing({ _client: client, _snapshotDir: makeTmpDir() });
@@ -308,8 +308,8 @@ describe('Scenario: Briefing with warm leads ready for outreach', () => {
 
   it('next action includes the count of leads with messages', async () => {
     const leads = [
-      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: ['msg1'] }),
-      makeLead({ id: 'l2', fitScore: 72, personalizedMessages: ['msg2'] }),
+      makeLead({ id: 'l1', fitScore: 85, personalizedMessages: [{ content: 'msg1', stepNumber: 1 }] }),
+      makeLead({ id: 'l2', fitScore: 72, personalizedMessages: [{ content: 'msg2', stepNumber: 1 }] }),
     ];
     const client = makeMockClient(leads);
     const briefing = await generateMorningBriefing({ _client: client, _snapshotDir: makeTmpDir() });

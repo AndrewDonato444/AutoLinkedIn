@@ -202,10 +202,14 @@ export async function enrichLeads(options: EnrichLeadsOptions = {}): Promise<Enr
     const lead = await client.getLead(options.leadId);
     const research = await webResearch(lead, icpDescription);
 
-    await client.updateLead(lead.id, {
-      fitScore: research.fitScore,
-      intentSignals: research.intentSignals,
-    });
+    const fit = research.fitScore >= minIntentScore ? 'qualified' : 'unknown';
+    const profileBaseline = [
+      `ICP Score: ${research.fitScore}/100`,
+      research.reasoning ? `Reasoning: ${research.reasoning}` : '',
+      research.intentSignals.length > 0 ? `Signals: ${research.intentSignals.join(' | ')}` : '',
+    ].filter(Boolean).join('\n');
+
+    await client.updateLead(lead.id, { fit, profileBaseline } as any);
 
     result.enriched.push({ lead, research });
 
@@ -213,7 +217,7 @@ export async function enrichLeads(options: EnrichLeadsOptions = {}): Promise<Enr
       ? research.intentSignals.join(', ')
       : 'none';
     console.log(
-      `${lead.firstName} ${lead.lastName} — score: ${research.fitScore}, signals: ${signalList}`,
+      `${lead.firstName} ${lead.lastName} — score: ${research.fitScore} (${fit}), signals: ${signalList}`,
     );
 
     return result;
@@ -229,10 +233,10 @@ export async function enrichLeads(options: EnrichLeadsOptions = {}): Promise<Enr
     leadsToProcess = page.leads;
   } else {
     const unenriched = page.leads.filter(
-      (l) => l.fitScore === null || l.fitScore === undefined,
+      (l) => l.fit === null || l.fit === undefined,
     );
     const alreadyEnriched = page.leads.filter(
-      (l) => l.fitScore !== null && l.fitScore !== undefined,
+      (l) => l.fit !== null && l.fit !== undefined,
     );
     result.skipped.push(...alreadyEnriched);
     leadsToProcess = unenriched;
@@ -249,10 +253,14 @@ export async function enrichLeads(options: EnrichLeadsOptions = {}): Promise<Enr
         );
       }
 
-      await client.updateLead(lead.id, {
-        fitScore: research.fitScore,
-        intentSignals: research.intentSignals,
-      });
+      const fit = research.fitScore >= minIntentScore ? 'qualified' : 'unknown';
+      const profileBaseline = [
+        `ICP Score: ${research.fitScore}/100`,
+        research.reasoning ? `Reasoning: ${research.reasoning}` : '',
+        research.intentSignals.length > 0 ? `Signals: ${research.intentSignals.join(' | ')}` : '',
+      ].filter(Boolean).join('\n');
+
+      await client.updateLead(lead.id, { fit, profileBaseline } as any);
 
       result.enriched.push({ lead, research });
     } catch (err: unknown) {

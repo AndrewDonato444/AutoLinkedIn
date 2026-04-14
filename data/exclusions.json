@@ -1,0 +1,28 @@
+{
+  "_comment": "No-fly list and current customers. The daily lead scan checks this before creating any contact.",
+
+  "currentCustomers": [
+    { "company": "Advocate Construction", "domain": "advocateconstruction.com" },
+    { "company": "Apple Roofing", "domain": "" },
+    { "company": "Blumira", "domain": "blumira.com" },
+    { "company": "Guardian Fire Services", "domain": "gfs-holding.com" }
+  ],
+
+  "omniaPartners": [
+    { "company": "James Whitney Co", "domain": "jameswhitneyco.com" },
+    { "company": "Central Roofing LLC", "domain": "centralroofingllc.net" },
+    { "company": "Great Roofing", "domain": "greatroofing.com" },
+    { "company": "Your Roof Hero", "domain": "yourroofhero.com" },
+    { "company": "TMJ Construction Services", "domain": "tmjconstructionservices.com" },
+    { "company": "Brandon J Roofing", "domain": "brandonjroofing.com" },
+    { "company": "Huf Construction", "domain": "hufconstruction.com" },
+    { "company": "Ace Roofing MT", "domain": "aceroofingmt.com" },
+    { "company": "BH Exteriors", "domain": "bhexteriors.com" },
+    { "company": "Brothers Services", "domain": "brothersservices.com" },
+    { "company": "HW Construction", "domain": "hwconstruction.com" }
+  ],
+
+  "noFlyLinkedinUrls": [],
+
+  "_instructions": "Add individuals to noFlyLinkedinUrls. Add companies to currentCustomers or omniaPartners. The scan agent checks company name (fuzzy) and domain against all three lists before creating any contact."
+}
