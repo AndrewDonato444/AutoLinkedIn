@@ -1,0 +1,115 @@
+{
+  "date": "2026-04-14",
+  "discovery": {
+    "created": [
+      {
+        "firstName": "Lead",
+        "lastName": "1",
+        "profileUrl": "https://linkedin.com/in/lead-1"
+      },
+      {
+        "firstName": "Lead",
+        "lastName": "2",
+        "profileUrl": "https://linkedin.com/in/lead-2"
+      },
+      {
+        "firstName": "Lead",
+        "lastName": "3",
+        "profileUrl": "https://linkedin.com/in/lead-3"
+      }
+    ],
+    "skipped": [],
+    "failed": [],
+    "limitExceeded": 0
+  },
+  "enrichment": {
+    "enriched": [
+      {
+        "lead": {
+          "id": "lead-1",
+          "firstName": "Lead",
+          "lastName": "1",
+          "profileUrl": "https://linkedin.com/in/lead-1",
+          "company": "FinPay",
+          "jobTitle": "CEO",
+          "location": "San Francisco, CA",
+          "fitScore": 70,
+          "intentSignals": [
+            "Raised Series A",
+            "Hiring SDRs"
+          ],
+          "createdAt": "2026-01-01T00:00:00Z"
+        },
+        "research": {
+          "fitScore": 65,
+          "intentSignals": [
+            "Signal 1"
+          ],
+          "reasoning": "Test reasoning"
+        }
+      },
+      {
+        "lead": {
+          "id": "lead-2",
+          "firstName": "Lead",
+          "lastName": "2",
+          "profileUrl": "https://linkedin.com/in/lead-2",
+          "company": "FinPay",
+          "jobTitle": "CEO",
+          "location": "San Francisco, CA",
+          "fitScore": 71,
+          "intentSignals": [
+            "Raised Series A",
+            "Hiring SDRs"
+          ],
+          "createdAt": "2026-01-01T00:00:00Z"
+        },
+        "research": {
+          "fitScore": 70,
+          "intentSignals": [
+            "Signal 2"
+          ],
+          "reasoning": "Test reasoning"
+        }
+      },
+      {
+        "lead": {
+          "id": "lead-3",
+          "firstName": "Lead",
+          "lastName": "3",
+          "profileUrl": "https://linkedin.com/in/lead-3",
+          "company": "FinPay",
+          "jobTitle": "CEO",
+          "location": "San Francisco, CA",
+          "fitScore": 72,
+          "intentSignals": [
+            "Raised Series A",
+            "Hiring SDRs"
+          ],
+          "createdAt": "2026-01-01T00:00:00Z"
+        },
+        "research": {
+          "fitScore": 75,
+          "intentSignals": [
+            "Signal 3"
+          ],
+          "reasoning": "Test reasoning"
+        }
+      }
+    ],
+    "failed": [],
+    "skipped": [],
+    "remaining": 0
+  },
+  "messageGeneration": {
+    "generated": [],
+    "failed": [],
+    "skipped": [],
+    "remaining": 0
+  },
+  "aboveThreshold": 3,
+  "belowThreshold": 0,
+  "failures": [],
+  "nextAction": "Open GojiBerry to review new leads",
+  "durationMs": 0
+}

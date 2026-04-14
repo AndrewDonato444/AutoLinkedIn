@@ -13,11 +13,11 @@
 | Phase | Features | Done | Status |
 |-------|----------|------|--------|
 | 1: Core Pipeline | 4 | 4 | ✅ |
-| 2: Intelligence Layer | 4 | 3 | ⏸️ |
+| 2: Intelligence Layer | 4 | 4 | ✅ |
 | 3: Automation & Scheduling | 4 | 4 | ✅ |
 | 4: Optimization Loop | 3 | 3 | ✅ |
 
-**Overall: 14/15 (93%) — Last updated: 2026-04-13**
+**Overall: 15/15 (100%) — Last updated: 2026-04-13**
 
 ---
 
@@ -50,7 +50,7 @@ Understand what's working and surface the right information at the right time.
 |---|---------|--------|------------|------|--------|
 | 10 | Pipeline overview report | vision | S | 1 | ✅ |
 | 11 | Campaign performance analytics | vision | M | 1 | ✅ |
-| 12 | Intent type breakdown | vision | S | 1 | ⏸️ |
+| 12 | Intent type breakdown | vision | S | 1 | ✅ |
 | 13 | Warm lead list builder | vision | M | 1,3 | ✅ |
 
 **Feature 10 — Pipeline overview report**: On-demand automation that pulls contacts (`GET /v1/contact` with filters), campaigns (`GET /v1/campaign`), and intent counts (`GET /v1/contact/intent-type-counts`) to generate a plain-English pipeline summary. "You have 142 contacts, 23 are warm, 3 campaigns active, top intent type is hiring."
