@@ -8,7 +8,7 @@ import type { DiscoveredLead, DiscoveryResult } from './types.js';
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
 const DEFAULT_LIMIT = 50;
-const ANTHROPIC_MODEL = 'claude-opus-4-6';
+const ANTHROPIC_MODEL = process.env.DISCOVERY_MODEL || 'claude-sonnet-4-6';
 const WEB_SEARCH_MAX_TOKENS = 8096;
 const SUMMARY_SEPARATOR_WIDTH = 80;
 

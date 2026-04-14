@@ -35,7 +35,7 @@ function makeLead(overrides: Partial<Lead> = {}): Lead {
     company: 'Acme',
     jobTitle: 'CEO',
     location: 'San Francisco, CA',
-    personalizedMessages: ['Hey, saw you just hired 3 engineers — great signal of growth!'],
+    personalizedMessages: [{ content: 'Hey, saw you just hired 3 engineers — great signal of growth!', stepNumber: 1 }],
     intentType: 'replied',
     ...overrides,
   };
@@ -103,7 +103,7 @@ const REPLIED_LEADS = Array.from({ length: 15 }, (_, i) =>
   makeLead({
     id: `replied-${i}`,
     intentType: 'replied',
-    personalizedMessages: [`Quick question — are you still hiring engineers? Saw ${i + 1} new posts.`],
+    personalizedMessages: [{ content: `Quick question — are you still hiring engineers? Saw ${i + 1} new posts.`, stepNumber: 1 }],
   }),
 );
 
@@ -111,7 +111,7 @@ const NON_REPLIED_LEADS = Array.from({ length: 85 }, (_, i) =>
   makeLead({
     id: `noreply-${i}`,
     intentType: 'contacted',
-    personalizedMessages: [`I'd love to connect and explore synergies with your team.`],
+    personalizedMessages: [{ content: `I'd love to connect and explore synergies with your team.`, stepNumber: 1 }],
   }),
 );
 
@@ -245,7 +245,7 @@ describe('Scenario: Reject run when insufficient messaged leads', () => {
   it('returns empty report when fewer than minMessages leads with personalizedMessages', async () => {
     // Only 5 leads with personalizedMessages
     const fewLeads = Array.from({ length: 5 }, (_, i) =>
-      makeLead({ id: `l-${i}`, personalizedMessages: ['test message'] }),
+      makeLead({ id: `l-${i}`, personalizedMessages: [{ content: 'test message', stepNumber: 1 }] }),
     );
     const client = makeClient(TWO_COMPLETED_CAMPAIGNS, fewLeads, fewLeads);
     const report = await optimizeMessageStyle({
@@ -258,7 +258,7 @@ describe('Scenario: Reject run when insufficient messaged leads', () => {
 
   it('report text mentions minimum threshold and current count', async () => {
     const fewLeads = Array.from({ length: 5 }, (_, i) =>
-      makeLead({ id: `l-${i}`, personalizedMessages: ['test message'] }),
+      makeLead({ id: `l-${i}`, personalizedMessages: [{ content: 'test message', stepNumber: 1 }] }),
     );
     const client = makeClient(TWO_COMPLETED_CAMPAIGNS, fewLeads, fewLeads);
     const report = await optimizeMessageStyle({
@@ -272,7 +272,7 @@ describe('Scenario: Reject run when insufficient messaged leads', () => {
 
   it('does not call analyzePatterns when insufficient leads', async () => {
     const fewLeads = Array.from({ length: 5 }, (_, i) =>
-      makeLead({ id: `l-${i}`, personalizedMessages: ['msg'] }),
+      makeLead({ id: `l-${i}`, personalizedMessages: [{ content: 'msg', stepNumber: 1 }] }),
     );
     const client = makeClient(TWO_COMPLETED_CAMPAIGNS, fewLeads, fewLeads);
     const analyze = makeAnalyzePatterns();
@@ -286,7 +286,7 @@ describe('Scenario: Reject run when insufficient messaged leads', () => {
       makeLead({ id: `nm-${i}`, personalizedMessages: undefined }),
     );
     const leadsWithMessages = Array.from({ length: 4 }, (_, i) =>
-      makeLead({ id: `wm-${i}`, personalizedMessages: ['a message'] }),
+      makeLead({ id: `wm-${i}`, personalizedMessages: [{ content: 'a message', stepNumber: 1 }] }),
     );
     const client = makeClient(TWO_COMPLETED_CAMPAIGNS, leadsWithMessages, [...leadsNoMessages, ...leadsWithMessages]);
     const report = await optimizeMessageStyle({

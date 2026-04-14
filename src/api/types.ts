@@ -1,3 +1,11 @@
+export interface PersonalizedMessage {
+  content: string;
+  stepNumber: number;
+}
+
+export type ContactFit = 'qualified' | 'unknown' | 'out-of-scope';
+export type ContactState = 'finished' | 'paused' | '1stnetwork' | 'excluded' | 'answered';
+
 export interface Lead {
   id: string;
   firstName: string;
@@ -7,10 +15,23 @@ export interface Lead {
   company?: string;
   jobTitle?: string;
   location?: string;
+  profileBaseline?: string;
+  fit?: ContactFit;
+  state?: ContactState;
+  // Read-only scoring fields (computed by GojiBerry AI)
+  scoring?: number;        // 0-1
+  intent_scoring?: number; // 0-3
+  total_scoring?: number;
+  score_reasoning?: string;
+  intent_keyword?: string;
+  intent_type?: string;
+  // Internal fields — stored in profileBaseline/note on the API, used internally for scoring logic
   fitScore?: number;
   intentSignals?: string[];
-  personalizedMessages?: string[];
   intentType?: string;
+  personalizedMessages?: PersonalizedMessage[];
+  linkedin_template?: string;
+  note?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -23,17 +44,21 @@ export interface CreateLeadInput {
   company?: string;
   jobTitle?: string;
   location?: string;
-  fitScore?: number;
+  profileBaseline?: string;
+  note?: string;
 }
 
 export interface UpdateLeadInput {
-  fitScore?: number;
-  intentSignals?: string[];
-  personalizedMessages?: string[];
+  fit?: ContactFit;
+  personalizedMessages?: PersonalizedMessage[];
+  profileBaseline?: string;
   email?: string;
   company?: string;
   jobTitle?: string;
   location?: string;
+  // Legacy internal fields — not sent to the API, used for internal scoring logic only
+  fitScore?: number;
+  intentSignals?: string[];
 }
 
 export interface LeadFilters {

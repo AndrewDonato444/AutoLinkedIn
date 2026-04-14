@@ -180,19 +180,14 @@ export async function generateMessages(
   if (options.leadId) {
     const lead = await client.getLead(options.leadId);
 
-    if ((lead.fitScore ?? 0) < minIntentScore) {
+    if (lead.fit !== 'qualified') {
       throw new Error(
-        `Lead ${lead.firstName} ${lead.lastName} has fitScore ${lead.fitScore ?? 0} — below threshold (${minIntentScore})`,
-      );
-    }
-    if (!lead.intentSignals?.length) {
-      throw new Error(
-        `Lead ${lead.firstName} ${lead.lastName} has no intentSignals — enrich first`,
+        `Lead ${lead.firstName} ${lead.lastName} is not qualified — enrich first`,
       );
     }
 
     const message = await messageGenerator(lead, icpDescription, { tone, maxLength });
-    await client.updateLead(lead.id, { personalizedMessages: [message] });
+    await client.updateLead(lead.id, { personalizedMessages: [{ content: message, stepNumber: 1 }] } as any);
     result.generated.push({ lead, message });
 
     console.log(
@@ -210,18 +205,18 @@ export async function generateMessages(
   );
   result.skipped.push(...alreadyMessaged);
 
-  // Eligible: no messages (or forceRegenerate) + has intentSignals, sorted warmest first
+  // Eligible: qualified fit, no messages yet (or forceRegenerate), has profileBaseline signals
   const eligible = page.leads
+    .filter((l) => l.fit === 'qualified')
     .filter((l) => options.forceRegenerate || !(l.personalizedMessages?.length))
-    .filter((l) => (l.intentSignals?.length ?? 0) > 0)
-    .sort((a, b) => (b.fitScore ?? 0) - (a.fitScore ?? 0));
+    .filter((l) => !!l.profileBaseline);
 
   const toProcess = eligible.slice(0, batchSize);
   result.remaining = eligible.length - toProcess.length;
 
   for (const lead of toProcess) {
-    // Low-signal warning: exactly one intentSignal
-    if (lead.intentSignals!.length === 1) {
+    // Low-signal warning: minimal profileBaseline
+    if ((lead.profileBaseline?.length ?? 0) < 50) {
       console.log(
         `Low signal: ${lead.firstName} ${lead.lastName} — message generated from limited data`,
       );
@@ -242,7 +237,7 @@ export async function generateMessages(
 
     // Store message
     try {
-      await client.updateLead(lead.id, { personalizedMessages: [message] });
+      await client.updateLead(lead.id, { personalizedMessages: [{ content: message, stepNumber: 1 }] } as any);
       result.generated.push({ lead, message });
 
       if (options.forceRegenerate) {

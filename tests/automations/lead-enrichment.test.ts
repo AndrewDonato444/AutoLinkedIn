@@ -30,7 +30,7 @@ function makeLeads(count: number, withScore = false): Lead[] {
       lastName: `${i + 1}`,
       profileUrl: `https://linkedin.com/in/lead-${i + 1}`,
       createdAt: `2026-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`,
-      ...(withScore ? { fitScore: 60 + i } : {}),
+      ...(withScore ? { fit: 'qualified' as const, profileBaseline: `ICP Score: ${60 + i}/100\nReasoning: Good match` } : {}),
     }),
   );
 }
@@ -176,10 +176,13 @@ describe('Scenario: Enrich leads with buying signals and fit score', () => {
       _webResearch: vi.fn().mockResolvedValue(research),
     });
 
-    expect(client.updateLead).toHaveBeenCalledWith(lead.id, {
-      fitScore: 80,
-      intentSignals: ['Signal A', 'Signal B'],
-    });
+    expect(client.updateLead).toHaveBeenCalledWith(
+      lead.id,
+      expect.objectContaining({
+        fit: 'qualified',
+        profileBaseline: expect.stringContaining('ICP Score:'),
+      }),
+    );
   });
 
   it('returns enriched leads in result.enriched', async () => {
@@ -226,7 +229,7 @@ describe('Scenario: Identify unenriched leads', () => {
 
   it('skips leads that already have a fitScore', async () => {
     const unenriched = makeLead({ id: 'u1', firstName: 'New', lastName: 'Lead' });
-    const alreadyEnriched = makeLead({ id: 'e1', firstName: 'Old', lastName: 'Lead', fitScore: 60 });
+    const alreadyEnriched = makeLead({ id: 'e1', firstName: 'Old', lastName: 'Lead', fit: 'qualified' });
     const client = makeMockClient({
       searchLeads: async () => paginatedWith([unenriched, alreadyEnriched]),
     });
@@ -261,7 +264,7 @@ describe('Scenario: Identify unenriched leads', () => {
   });
 
   it('processes leads with fitScore of null as unenriched', async () => {
-    const lead = makeLead({ fitScore: undefined });
+    const lead = makeLead({ fit: undefined });
     const client = makeMockClient({ searchLeads: async () => paginatedWith([lead]) });
     const webResearch = vi.fn().mockResolvedValue(makeResearch());
 
@@ -317,7 +320,9 @@ describe("Scenario: Research a lead's online activity", () => {
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
-      expect.objectContaining({ intentSignals: signals }),
+      expect.objectContaining({
+        profileBaseline: expect.stringContaining('Recently raised Series A'),
+      }),
     );
   });
 
@@ -333,10 +338,9 @@ describe("Scenario: Research a lead's online activity", () => {
     });
 
     const updateCall = client.updateLead.mock.calls[0][1] as UpdateLeadInput;
-    expect(updateCall.intentSignals).toEqual(expect.arrayContaining([expect.any(String)]));
-    updateCall.intentSignals!.forEach((s) => {
-      expect(typeof s).toBe('string');
-    });
+    expect(typeof updateCall.profileBaseline).toBe('string');
+    expect(updateCall.profileBaseline).toContain('Recently raised Series A');
+    expect(updateCall.profileBaseline).toContain('Hiring 3 SDRs');
   });
 });
 
@@ -366,7 +370,10 @@ describe('Scenario: Score a lead based on ICP fit and intent', () => {
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
-      expect.objectContaining({ fitScore: 87 }),
+      expect.objectContaining({
+        fit: 'qualified',
+        profileBaseline: expect.stringContaining('ICP Score: 87/100'),
+      }),
     );
   });
 
@@ -668,7 +675,10 @@ describe('Scenario: Handle web research returning no signals', () => {
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
-      expect.objectContaining({ fitScore: 30, intentSignals: [] }),
+      expect.objectContaining({
+        fit: 'unknown',
+        profileBaseline: expect.stringContaining('ICP Score: 30/100'),
+      }),
     );
   });
 
@@ -1017,7 +1027,7 @@ describe('Scenario: Re-enrich a lead (force refresh)', () => {
   });
 
   it('updates GojiBerry with new score and signals on forceRefresh', async () => {
-    const lead = makeLead({ fitScore: 45 });
+    const lead = makeLead({ fit: 'unknown' });
     const client = makeMockClient({ searchLeads: async () => paginatedWith([lead]) });
 
     await enrichLeads({
@@ -1029,7 +1039,10 @@ describe('Scenario: Re-enrich a lead (force refresh)', () => {
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
-      expect.objectContaining({ fitScore: 82, intentSignals: ['New signal'] }),
+      expect.objectContaining({
+        fit: 'qualified',
+        profileBaseline: expect.stringContaining('ICP Score: 82/100'),
+      }),
     );
   });
 
@@ -1105,10 +1118,13 @@ describe('Scenario: Enrich a specific lead by ID', () => {
       _webResearch: vi.fn().mockResolvedValue(research),
     });
 
-    expect(client.updateLead).toHaveBeenCalledWith(lead.id, {
-      fitScore: 78,
-      intentSignals: ['Signal A'],
-    });
+    expect(client.updateLead).toHaveBeenCalledWith(
+      lead.id,
+      expect.objectContaining({
+        fit: 'qualified',
+        profileBaseline: expect.stringContaining('ICP Score: 78/100'),
+      }),
+    );
   });
 
   it('outputs single-lead summary: "{firstName} {lastName} — score: {score}, signals: {list}"', async () => {
