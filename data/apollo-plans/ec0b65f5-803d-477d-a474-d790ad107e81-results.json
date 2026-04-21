@@ -1,0 +1,7 @@
+[
+  { "contactId": 4893075, "match": true, "email": "luke.gaeta@pyebarkerfs.com", "personId": "68f81cbe7a3db1000126bee6", "confidence": 1.0 },
+  { "contactId": 4893071, "match": true, "email": "dcouture@tectaamerica.com", "personId": "60ef0f1a926e4500013c6e2d", "confidence": 1.0 },
+  { "contactId": 4724299, "match": true, "email": "aaloya@conditionedair.com", "personId": "679a0b92b221ec000163da49", "confidence": 1.0 },
+  { "contactId": 4893135, "match": true, "email": "jborg@pestcoholdings.com", "personId": "60089ea249730700012437bb", "confidence": 1.0 },
+  { "contactId": 4724265, "match": true, "email": "gene.judd@bonedry.com", "personId": "66f5416dca2e4a000128d2db", "confidence": 1.0 }
+]
