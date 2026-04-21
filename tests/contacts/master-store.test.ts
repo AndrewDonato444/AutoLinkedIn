@@ -32,7 +32,7 @@ function makeMaster(overrides: Partial<MasterContact> = {}): MasterContact {
     apolloMatchConfidence: null,
     gojiberryState: {
       listId: null,
-      campaignStatus: null,
+      campaignStatus: [],
       readyForCampaign: false,
       bounced: false,
       unsubscribed: false,

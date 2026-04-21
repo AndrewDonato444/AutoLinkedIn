@@ -3,6 +3,7 @@ import path from 'path';
 import type { Lead, PaginatedLeads } from '../api/types.js';
 import { GojiBerryClient } from '../api/gojiberry-client.js';
 import { readMaster, writeMaster, mergeContact } from './master-store.js';
+import { normalizeCampaignStatus } from './gojiberry-sync.js';
 import type {
   MasterContact,
   MasterContactGojiberryState,
@@ -188,7 +189,7 @@ async function fetchAllGojiberry(client: RebuildClient): Promise<Lead[]> {
 function defaultGojiberryState(): MasterContactGojiberryState {
   return {
     listId: null,
-    campaignStatus: null,
+    campaignStatus: [],
     readyForCampaign: false,
     bounced: false,
     unsubscribed: false,
@@ -224,7 +225,7 @@ function leadToMaster(lead: Lead, fetchedAt: string): MasterContact {
 
     gojiberryState: {
       listId: typeof rawLead.listId === 'number' ? (rawLead.listId as number) : null,
-      campaignStatus: (rawLead.campaignStatus as string | null) ?? null,
+      campaignStatus: normalizeCampaignStatus(rawLead.campaignStatus),
       readyForCampaign: rawLead.readyForCampaign === true,
       bounced: rawLead.bounced === true,
       unsubscribed: rawLead.unsubscribed === true,

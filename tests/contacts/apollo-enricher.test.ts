@@ -37,7 +37,7 @@ function makeMaster(overrides: Partial<MasterContact> = {}): MasterContact {
     apolloMatchConfidence: null,
     gojiberryState: {
       listId: null,
-      campaignStatus: null,
+      campaignStatus: [],
       readyForCampaign: false,
       bounced: false,
       unsubscribed: false,
@@ -680,7 +680,7 @@ describe('Scenario: list-id filter', () => {
         profileUrl: 'https://linkedin.com/in/in-list',
         gojiberryState: {
           listId: 14507,
-          campaignStatus: null,
+          campaignStatus: [],
           readyForCampaign: false,
           bounced: false,
           unsubscribed: false,
@@ -692,7 +692,7 @@ describe('Scenario: list-id filter', () => {
         profileUrl: 'https://linkedin.com/in/other-list',
         gojiberryState: {
           listId: 99,
-          campaignStatus: null,
+          campaignStatus: [],
           readyForCampaign: false,
           bounced: false,
           unsubscribed: false,
@@ -704,7 +704,7 @@ describe('Scenario: list-id filter', () => {
         profileUrl: 'https://linkedin.com/in/no-list',
         gojiberryState: {
           listId: null,
-          campaignStatus: null,
+          campaignStatus: [],
           readyForCampaign: false,
           bounced: false,
           unsubscribed: false,
@@ -739,7 +739,7 @@ describe('Scenario: list-id filter', () => {
         id: 1,
         gojiberryState: {
           listId: 14507,
-          campaignStatus: null,
+          campaignStatus: [],
           readyForCampaign: false,
           bounced: false,
           unsubscribed: false,

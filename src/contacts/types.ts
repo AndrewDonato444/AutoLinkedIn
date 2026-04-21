@@ -1,8 +1,24 @@
 import type { PersonalizedMessage, ContactFit } from '../api/types.js';
 
+/**
+ * Single event in a contact's campaign timeline — one per step (invitation,
+ * message, etc.). Produced by GojiBerry; we store read-only.
+ */
+export interface CampaignEvent {
+  type: string;                // 'invitation' | 'message' | ...
+  state: string;               // 'sent' | 'accepted' | 'replied' | 'bounced' | ...
+  createdAt: string;           // ISO 8601
+  stepNumber: number;
+}
+
 export interface MasterContactGojiberryState {
   listId: number | null;
-  campaignStatus: string | null;
+  /**
+   * Ordered list of campaign events for this contact. Empty array if the
+   * contact is not (yet) in a campaign. GojiBerry's raw `campaignStatus`
+   * field is an array of these objects — we store them as-is.
+   */
+  campaignStatus: CampaignEvent[];
   readyForCampaign: boolean;
   bounced: boolean;
   unsubscribed: boolean;
