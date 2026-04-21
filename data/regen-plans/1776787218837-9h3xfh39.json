@@ -1,0 +1,13 @@
+{
+  "runId": "1776787218837-9h3xfh39",
+  "candidates": [],
+  "skippedByGate": {
+    "not-in-list": 97,
+    "not-qualified": 23,
+    "no-signals": 36,
+    "already-messaged": 82,
+    "already-sent-in-campaign": 0
+  },
+  "eligible": 0,
+  "masterFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/contacts.jsonl"
+}
