@@ -23,8 +23,10 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | automation | [Morning Briefing](.specs/features/automation/morning-briefing.feature.md) | `src/automations/morning-briefing.ts` | tests/automations/morning-briefing.test.ts | - | implemented |
 | automation | [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md) | `src/automations/weekly-performance-report.ts` | tests/automations/weekly-performance-report.test.ts | - | implemented |
 | core-pipeline | [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md) | `src/api/gojiberry-client.ts` | tests/api/gojiberry-client.test.ts | - | implemented |
+| core-pipeline | [Hybrid Lead Enrichment with ScrapingDog](.specs/features/core-pipeline/hybrid-enrichment-scrapingdog.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
 | core-pipeline | [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md) | `src/automations/icp-lead-discovery.ts` | tests/automations/icp-lead-discovery.test.ts | - | implemented |
 | core-pipeline | [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md) | `src/automations/lead-enrichment.ts` | tests/automations/lead-enrichment.test.ts | - | implemented |
+| core-pipeline | [Master Contact Store with Apollo Enrichment](.specs/features/core-pipeline/master-contact-store.feature.md) | `- src/contacts/types.ts` | tests/contacts/master-store.test.ts, tests/contacts/rebuild-master.test.ts, tests/contacts/apollo-enricher.test.ts, tests/contacts/gojiberry-sync.test.ts | readMaster, writeMaster, mergeContact, rebuildMaster, enrichContacts, syncGojiberryState | implemented |
 | core-pipeline | [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md) | `src/automations/message-generation.ts` | tests/automations/message-generation.test.ts | - | implemented |
 | intelligence-layer | [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md) | `src/automations/campaign-performance-analytics.ts` | tests/automations/campaign-performance-analytics.test.ts | - | implemented |
 | intelligence-layer | [Intent Type Breakdown](.specs/features/intelligence-layer/intent-type-breakdown.feature.md) | `src/automations/intent-type-breakdown.ts` | tests/automations/intent-type-breakdown.test.ts | - | stub |
@@ -43,8 +45,8 @@ _Regenerate with: `./scripts/generate-mapping.sh`_
 | stub | 1 |
 | specced | 0 |
 | tested | 0 |
-| implemented | 14 |
-| **Total** | **15** |
+| implemented | 16 |
+| **Total** | **17** |
 
 ---
 
@@ -69,8 +71,10 @@ _None_
 - [Morning Briefing](.specs/features/automation/morning-briefing.feature.md)
 - [Weekly Performance Report](.specs/features/automation/weekly-performance-report.feature.md)
 - [GojiBerry API Client](.specs/features/core-pipeline/gojiberry-api-client.feature.md)
+- [Hybrid Lead Enrichment with ScrapingDog](.specs/features/core-pipeline/hybrid-enrichment-scrapingdog.feature.md)
 - [ICP-Based Lead Discovery](.specs/features/core-pipeline/icp-lead-discovery.feature.md)
 - [Lead Enrichment + Intent Scoring](.specs/features/core-pipeline/lead-enrichment-intent-scoring.feature.md)
+- [Master Contact Store with Apollo Enrichment](.specs/features/core-pipeline/master-contact-store.feature.md)
 - [Personalized Message Generation](.specs/features/core-pipeline/personalized-message-generation.feature.md)
 - [Campaign Performance Analytics](.specs/features/intelligence-layer/campaign-performance-analytics.feature.md)
 - [Warm Lead List Builder](.specs/features/intelligence-layer/warm-lead-list-builder.feature.md)

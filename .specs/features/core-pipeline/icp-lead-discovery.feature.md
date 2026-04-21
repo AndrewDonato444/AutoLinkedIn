@@ -62,13 +62,29 @@ And `DAILY_LEAD_SCAN_LIMIT` is not set in `.env.local`
 When the lead discovery automation runs
 Then it uses a default limit of 50 leads
 
-### Scenario: Skip duplicate leads already in GojiBerry
-Given the automation discovered a lead with profileUrl "linkedin.com/in/jane-doe"
-And a lead with that profileUrl already exists in GojiBerry
-When the automation attempts to create the lead
-Then it skips the duplicate
+### Scenario: Skip duplicate leads already in the master contact store
+Given the master contact store (`data/contacts.jsonl`) contains a contact with profileUrl "linkedin.com/in/jane-doe"
+And the automation discovers a lead with that same profileUrl
+When the automation processes the lead
+Then it skips the duplicate without calling the GojiBerry API
 And logs: "Skipped: Jane Doe — already in GojiBerry"
 And the duplicate slot is consumed from the scan limit (duplicates are detected during processing, after the limit window is applied)
+
+**Implementation note**: Dedup reads from the master contact store, not from the GojiBerry `searchLeads` API. Master is the source of truth. Callers (e.g. `daily-lead-scan.ts`) should call `rebuildMaster()` before `discoverLeads()` to ensure dedup reflects the latest GojiBerry state.
+
+### Scenario: Dedup tolerates LinkedIn URL variations
+Given the master contains "https://www.linkedin.com/in/jane-doe/"
+And the automation discovers "http://linkedin.com/in/jane-doe" (or any variation — https↔http, www↔no-www, trailing slash, query string, fragment)
+When the automation processes the lead
+Then it treats them as the same contact and skips the duplicate
+Because URLs are normalized via `normalizeLinkedInUrl` (from `src/utils/linkedin-url.ts`) before comparison
+
+### Scenario: Dedup prevents duplicates within a single scan
+Given the web search returns two results pointing at the same LinkedIn profile (same URL, possibly different formats)
+When the automation processes both
+Then only the first is created in GojiBerry
+And the second is added to `skipped[]`
+Because the in-memory seen-set is updated after each successful create
 
 ### Scenario: Extract structured lead data from web search
 Given the automation found a matching person on the web
@@ -165,10 +181,12 @@ async function discoverLeads(options?: {
            │
 4. Apply DAILY_LEAD_SCAN_LIMIT (leads already ranked best-first by web search)
            │
-5. For each lead:
-   ├── Check if profileUrl exists in GojiBerry (searchLeads)
-   ├── If exists → skip (add to skipped[])
-   └── If new → createLead() via GojiBerry API client
+5. Load master contact store → build Set<normalizedUrl>
+           │
+6. For each lead:
+   ├── Normalize profileUrl via `normalizeLinkedInUrl`
+   ├── If in Set → skip (add to skipped[])
+   └── If new → createLead() via GojiBerry API client, then add to Set
            │
 6. Output summary table + totals
 ```

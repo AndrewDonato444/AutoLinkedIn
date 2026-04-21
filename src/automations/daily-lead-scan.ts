@@ -4,6 +4,7 @@ import fs from 'fs';
 import { discoverLeads } from './icp-lead-discovery.js';
 import { enrichLeads } from './lead-enrichment.js';
 import { generateMessages } from './message-generation.js';
+import { rebuildMaster } from '../contacts/rebuild-master.js';
 import { AuthError } from '../api/errors.js';
 import type { DiscoveryResult, EnrichmentResult, MessageGenerationResult } from './types.js';
 
@@ -13,6 +14,7 @@ const DEFAULT_LEAD_LIMIT = 10;
 const DEFAULT_MIN_INTENT_SCORE = 50;
 const DEFAULT_CRON = '0 7 * * 1-5';
 const DEFAULT_SCAN_LOG_DIR = 'data/scan-logs';
+const DEFAULT_MASTER_PATH = 'data/contacts.jsonl';
 const AUTH_ABORT_MSG =
   'Daily scan aborted — API authentication failed. Check your GOJIBERRY_API_KEY.';
 
@@ -33,8 +35,12 @@ export interface DailyScanOptions {
   _enrichLeads?: typeof enrichLeads;
   /** Test-only: inject mock message generation function */
   _generateMessages?: typeof generateMessages;
+  /** Test-only: inject mock master rebuild function */
+  _rebuildMaster?: typeof rebuildMaster;
   /** Test-only: override scan log directory */
   _scanLogDir?: string;
+  /** Test-only: override master file path (default: data/contacts.jsonl) */
+  _masterFilePath?: string;
 }
 
 export interface DailyScanResult {
@@ -258,6 +264,8 @@ export async function runDailyLeadScan(
   const discoverFn = options._discoverLeads ?? discoverLeads;
   const enrichFn = options._enrichLeads ?? enrichLeads;
   const generateFn = options._generateMessages ?? generateMessages;
+  const rebuildFn = options._rebuildMaster ?? rebuildMaster;
+  const masterFilePath = options._masterFilePath ?? DEFAULT_MASTER_PATH;
 
   /** Build, save, and return an abort result where nextAction === summaryText. */
   const abort = async (
@@ -293,10 +301,30 @@ export async function runDailyLeadScan(
     return abort(abortMsg, makeEmptyDiscovery(), null, 0, 0, [], console.log);
   }
 
+  // ── Step 0: Refresh master so dedup is accurate ─────────────────────────────
+  // Discovery dedups against the master contact store; we rebuild here to pull
+  // the latest GojiBerry state before each scan. AuthError aborts. Other errors
+  // are logged but non-fatal — we'd rather run with slightly stale master than
+  // skip the scan entirely. Reuses `scanLogDir` (already resolved from options
+  // or default) so a test override flows through.
+  try {
+    await rebuildFn({ masterFilePath, scanLogsDir: scanLogDir });
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return abort(AUTH_ABORT_MSG, makeEmptyDiscovery(), null, 0, 0, []);
+    }
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.warn(`Master rebuild failed (continuing with existing master): ${errorMessage}`);
+  }
+
   // ── Step 1: Discovery ───────────────────────────────────────────────────────
   let discoveryResult: DiscoveryResult;
   try {
-    discoveryResult = await discoverFn({ icpDescription, limit: leadLimit });
+    discoveryResult = await discoverFn({
+      icpDescription,
+      limit: leadLimit,
+      masterFilePath,
+    });
   } catch (err: unknown) {
     if (err instanceof AuthError) {
       return abort(AUTH_ABORT_MSG, makeEmptyDiscovery(), null, 0, 0, []);
