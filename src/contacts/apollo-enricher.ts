@@ -82,6 +82,12 @@ export interface EnrichResult {
 }
 
 const DEFAULT_BATCH_SIZE = 10;
+/**
+ * After this many Apollo errors for one contact, we stop retrying and mark
+ * them as enriched-with-no-match. Prevents ghost retry loops on consistently
+ * flaky URLs.
+ */
+const MAX_APOLLO_ERROR_RETRIES = 3;
 
 // Re-exported from shared util so existing imports keep working.
 export { normalizeLinkedInUrl } from '../utils/linkedin-url.js';
@@ -271,14 +277,25 @@ export async function applyEnrichmentResults(
   const logEntries: EnrichmentLogEntry[] = [];
   let enriched = 0;
   let creditsUsed = 0;
+  // Hoisted so all contacts in one run share a single timestamp — conceptually
+  // they were enriched "at the same time" (the run), and this keeps the
+  // apolloEnrichedAt value identical across the batch in logs + master.
+  const now = new Date().toISOString();
 
   for (const result of results) {
     const contact = contactById.get(result.contactId);
     if (!contact) continue;
     const batchSize = batchSizeByContactId.get(result.contactId) ?? 1;
-    const now = new Date().toISOString();
 
     if (result.error) {
+      // Increment retry counter; after MAX_APOLLO_ERROR_RETRIES, give up and
+      // mark as enriched so we don't burn credits retrying the same bad URL.
+      const nextCount = (contact.apolloErrorCount ?? 0) + 1;
+      contact.apolloErrorCount = nextCount;
+      contact.masterUpdatedAt = now;
+      if (nextCount >= MAX_APOLLO_ERROR_RETRIES) {
+        contact.apolloEnrichedAt = now;
+      }
       outcomes.error++;
       logEntries.push({
         timestamp: now,

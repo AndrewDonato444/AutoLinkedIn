@@ -172,6 +172,8 @@ function parseScanLogEntries(scanLogsDir: string): ScanLogEntry[] {
   return entries;
 }
 
+const MAX_PAGES = 100;
+
 async function fetchAllGojiberry(client: RebuildClient): Promise<Lead[]> {
   const all: Lead[] = [];
   let page = 1;
@@ -181,7 +183,13 @@ async function fetchAllGojiberry(client: RebuildClient): Promise<Lead[]> {
     all.push(...result.leads);
     if (result.total !== undefined && all.length >= result.total) break;
     page++;
-    if (page > 100) break;
+    if (page > MAX_PAGES) {
+      console.warn(
+        `fetchAllGojiberry: hit MAX_PAGES=${MAX_PAGES} safety cap (~${MAX_PAGES * PAGE_SIZE} contacts). ` +
+          `Master may be incomplete — raise MAX_PAGES if you've grown past this.`,
+      );
+      break;
+    }
   }
   return all;
 }
@@ -311,13 +319,37 @@ function buildScanLogOnlyContact(entries: ScanLogEntry[], fetchedAt: string): Ma
   };
 }
 
+/**
+ * Structural deep-equality that ignores `masterUpdatedAt` (which changes every
+ * rebuild) and is order-independent for object keys. Replaces a previous
+ * JSON.stringify implementation that was fragile against key-order drift if
+ * MasterContact fields were ever re-ordered in a constructor.
+ */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false;
+    return true;
+  }
+  const aKeys = Object.keys(a as Record<string, unknown>);
+  const bKeys = Object.keys(b as Record<string, unknown>);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) {
+    if (!Object.prototype.hasOwnProperty.call(b, k)) return false;
+    if (!deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) return false;
+  }
+  return true;
+}
+
 function contactsEqual(a: MasterContact, b: MasterContact): boolean {
-  const strip = (c: MasterContact) => {
-    const { masterUpdatedAt: _a, ...rest } = c;
-    void _a;
-    return rest;
-  };
-  return JSON.stringify(strip(a)) === JSON.stringify(strip(b));
+  const { masterUpdatedAt: _a, ...restA } = a;
+  const { masterUpdatedAt: _b, ...restB } = b;
+  void _a;
+  void _b;
+  return deepEqual(restA, restB);
 }
 
 export async function rebuildMaster(options: RebuildOptions): Promise<RebuildResult> {

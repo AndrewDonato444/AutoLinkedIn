@@ -53,6 +53,13 @@ export interface MasterContact {
   apolloPersonId: string | null;
   apolloEnrichedAt: string | null;
   apolloMatchConfidence: number | null;
+  /**
+   * How many Apollo errors this contact has accumulated without being
+   * successfully matched. Cleared back to undefined once matched. Caps at
+   * MAX_APOLLO_ERROR_RETRIES — at which point we mark the contact as
+   * enriched-with-no-match so future runs stop retrying.
+   */
+  apolloErrorCount?: number;
 
   gojiberryState: MasterContactGojiberryState;
 

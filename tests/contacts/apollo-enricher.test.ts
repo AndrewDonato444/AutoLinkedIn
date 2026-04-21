@@ -766,3 +766,48 @@ describe('Scenario: list-id filter', () => {
     expect(result.enriched).toBe(2);
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Scenario: Apollo error retry ceiling
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('Scenario: Apollo error retry ceiling', () => {
+  it('increments apolloErrorCount on each error', async () => {
+    writeMasterFile(masterFile, [makeMaster({ id: 1, profileUrl: 'https://linkedin.com/in/foo' })]);
+    const apollo = mockApollo({
+      peopleBulkMatch: vi.fn().mockRejectedValue(new Error('network down')),
+    });
+    await enrichContacts({
+      masterFilePath: masterFile,
+      logFilePath: logFile,
+      _apollo: apollo,
+      apply: true,
+      runBudget: 50,
+      totalBudget: 500,
+    });
+    const [contact] = readMasterFile(masterFile);
+    expect(contact.apolloErrorCount).toBe(1);
+    expect(contact.apolloEnrichedAt).toBeNull(); // still retryable
+  });
+
+  it('marks contact as enriched after reaching MAX_APOLLO_ERROR_RETRIES (3)', async () => {
+    // Start with count=2; one more error hits the cap and marks enriched.
+    writeMasterFile(masterFile, [
+      makeMaster({ id: 1, profileUrl: 'https://linkedin.com/in/foo', apolloErrorCount: 2 }),
+    ]);
+    const apollo = mockApollo({
+      peopleBulkMatch: vi.fn().mockRejectedValue(new Error('still down')),
+    });
+    await enrichContacts({
+      masterFilePath: masterFile,
+      logFilePath: logFile,
+      _apollo: apollo,
+      apply: true,
+      runBudget: 50,
+      totalBudget: 500,
+    });
+    const [contact] = readMasterFile(masterFile);
+    expect(contact.apolloErrorCount).toBe(3);
+    expect(contact.apolloEnrichedAt).not.toBeNull(); // give up; won't retry
+  });
+});
