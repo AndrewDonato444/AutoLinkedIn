@@ -1,0 +1,10 @@
+{
+  "matches": [
+    null,
+    { "id": "66f825bdeee1360001b9df76", "linkedin_url": "http://www.linkedin.com/in/todd-case-0520b0bb", "email": "todd@airrific.com", "email_status": "verified" },
+    { "id": "66f600c9d04f8a00015eda6b", "linkedin_url": "http://www.linkedin.com/in/jason-crew-206b6bb", "email": "jason.crew@arrowexterminators.com", "email_status": "verified" },
+    { "id": "66d4055d13e97d0001c66d6d", "linkedin_url": "http://www.linkedin.com/in/ryan-popkin-399416259", "email": "ryanp@ateasepest.com", "email_status": "verified" },
+    { "id": "631b34ba71f68c0001666629", "linkedin_url": "http://www.linkedin.com/in/jeff-pointer", "email": null, "email_status": "unavailable" },
+    { "id": "62d9a1eaa2f90b00019fdddf", "linkedin_url": "http://www.linkedin.com/in/joseph-manning-a4330a86", "email": "joseph@allamericanroofing.com", "email_status": "extrapolated" }
+  ]
+}

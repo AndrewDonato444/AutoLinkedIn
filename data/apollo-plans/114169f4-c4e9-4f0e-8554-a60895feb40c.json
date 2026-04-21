@@ -1,0 +1,290 @@
+{
+  "runId": "114169f4-c4e9-4f0e-8554-a60895feb40c",
+  "batches": [
+    {
+      "batchIndex": 0,
+      "details": [
+        {
+          "id": "4967333",
+          "linkedin_url": "https://www.linkedin.com/in/macon-sullivan-b37b6676/",
+          "first_name": "Macon",
+          "last_name": "Sullivan",
+          "organization_name": "Othos Pest Management"
+        },
+        {
+          "id": "4967338",
+          "linkedin_url": "https://www.linkedin.com/in/samuel-connor-business/",
+          "first_name": "Samuel",
+          "last_name": "Connor",
+          "organization_name": "Green Pest Services"
+        },
+        {
+          "id": "4724261",
+          "linkedin_url": "https://linkedin.com/in/rick-rogers-99241a26",
+          "first_name": "Rick",
+          "last_name": "Rogers",
+          "organization_name": "Del-Air Heating, Air Conditioning, Plumbing and Electrical"
+        },
+        {
+          "id": "4724263",
+          "linkedin_url": "https://linkedin.com/in/david-massey-b63b77ba",
+          "first_name": "David",
+          "last_name": "Massey",
+          "organization_name": "Secure Roofing and Solar"
+        },
+        {
+          "id": "4724303",
+          "linkedin_url": "https://linkedin.com/in/shane-oswalt-a6512a14a",
+          "first_name": "Shane",
+          "last_name": "Oswalt",
+          "organization_name": "AllPest Pest Control & Wildlife Removal"
+        },
+        {
+          "id": "4724312",
+          "linkedin_url": "https://linkedin.com/in/devin-kleinpeter-7572841a5",
+          "first_name": "Devin",
+          "last_name": "Kleinpeter",
+          "organization_name": "TOP TEAM ROOFING & CONTRACTING"
+        },
+        {
+          "id": "4724317",
+          "linkedin_url": "https://linkedin.com/in/becelectric",
+          "first_name": "Brian",
+          "last_name": "Vardiman",
+          "organization_name": "Service Lion Plumbing Heating Air Electric"
+        },
+        {
+          "id": "4724345",
+          "linkedin_url": "https://linkedin.com/in/kevin-citarella-696a71ba",
+          "first_name": "Kevin",
+          "last_name": "Citarella",
+          "organization_name": "FL Pest Pros"
+        },
+        {
+          "id": "4893074",
+          "linkedin_url": "https://www.linkedin.com/in/ryan-buege-94a0a12a/",
+          "first_name": "Ryan",
+          "last_name": "Buege",
+          "organization_name": "All Energy Solar"
+        },
+        {
+          "id": "4893102",
+          "linkedin_url": "https://www.linkedin.com/in/matt-steinrock-03313590/",
+          "first_name": "Matt",
+          "last_name": "Steinrock",
+          "organization_name": "American Roofing and Metal Co"
+        }
+      ]
+    },
+    {
+      "batchIndex": 1,
+      "details": [
+        {
+          "id": "4893131",
+          "linkedin_url": "https://www.linkedin.com/in/cody-king-96ba7465/",
+          "first_name": "Cody",
+          "last_name": "King",
+          "organization_name": "Kindred Pest Control"
+        },
+        {
+          "id": "4967321",
+          "linkedin_url": "https://www.linkedin.com/in/allen-beck-a590301b/",
+          "first_name": "Allen",
+          "last_name": "Beck",
+          "organization_name": "Thermal and Fire Systems"
+        },
+        {
+          "id": "4967323",
+          "linkedin_url": "https://www.linkedin.com/in/brandon-jones-b4387b13b/",
+          "first_name": "Brandon",
+          "last_name": "Jones",
+          "organization_name": "Tier 1 Fire Protection"
+        },
+        {
+          "id": "4724250",
+          "linkedin_url": "https://linkedin.com/in/george-wright-830a638",
+          "first_name": "George",
+          "last_name": "Wright",
+          "organization_name": "1st Choice Pest Control"
+        },
+        {
+          "id": "4724253",
+          "linkedin_url": "https://linkedin.com/in/tcavallo",
+          "first_name": "Tony",
+          "last_name": "Cavallo",
+          "organization_name": "T.Webber Plumbing, Heating, Air & Electric"
+        },
+        {
+          "id": "4724262",
+          "linkedin_url": "https://linkedin.com/in/scott-mcleod-0028445",
+          "first_name": "Scott",
+          "last_name": "McLeod",
+          "organization_name": "Fields & Fowler HVAC, Plumbing, Electrical & Generators"
+        },
+        {
+          "id": "4724308",
+          "linkedin_url": "https://linkedin.com/in/richard-moro",
+          "first_name": "Richard",
+          "last_name": "Moro",
+          "organization_name": "All American HVAC"
+        },
+        {
+          "id": "4724315",
+          "linkedin_url": "https://linkedin.com/in/rachelle-payne-730a9452",
+          "first_name": "Rachelle",
+          "last_name": "Payne",
+          "organization_name": "American Plumbing Heating Cooling & Electrical"
+        },
+        {
+          "id": "4724338",
+          "linkedin_url": "https://linkedin.com/in/sammy-shelton-1717a638",
+          "first_name": "Sammy",
+          "last_name": "Shelton",
+          "organization_name": "Four Seasons Air Conditioning Heating & Refrigeration"
+        },
+        {
+          "id": "4819266",
+          "linkedin_url": "https://www.linkedin.com/in/johnwalsh108/",
+          "first_name": "John",
+          "last_name": "Walsh",
+          "organization_name": "Paradise Air"
+        }
+      ]
+    },
+    {
+      "batchIndex": 2,
+      "details": [
+        {
+          "id": "4893133",
+          "linkedin_url": "https://www.linkedin.com/in/nate-oliver-b3ba7a233/",
+          "first_name": "Nate",
+          "last_name": "Oliver",
+          "organization_name": "Green Leaf Pest Control"
+        },
+        {
+          "id": "4724254",
+          "linkedin_url": "https://linkedin.com/in/toddkiefer1",
+          "first_name": "Todd",
+          "last_name": "Kiefer",
+          "organization_name": "Tiger Plumbing, Heating, Air Conditioning Services"
+        },
+        {
+          "id": "4724309",
+          "linkedin_url": "https://linkedin.com/in/william-hansen-68508212b",
+          "first_name": "William",
+          "last_name": "Hansen",
+          "organization_name": "Hansen Plumbing"
+        },
+        {
+          "id": "4724313",
+          "linkedin_url": "https://linkedin.com/in/douglas-beasley",
+          "first_name": "Douglas",
+          "last_name": "Beasley",
+          "organization_name": "Ace Home Services"
+        },
+        {
+          "id": "4724319",
+          "linkedin_url": "https://linkedin.com/in/robertmdykes",
+          "first_name": "Robert",
+          "last_name": "Dykes",
+          "organization_name": "Multi-Trade Home Services"
+        },
+        {
+          "id": "4724340",
+          "linkedin_url": "https://linkedin.com/in/hamelsac",
+          "first_name": "Luke",
+          "last_name": "Hamel",
+          "organization_name": "Hamel's Air Conditioning & Heating"
+        },
+        {
+          "id": "4819269",
+          "linkedin_url": "https://www.linkedin.com/in/joel-bradsher-9b629325/",
+          "first_name": "Joel",
+          "last_name": "Bradsher",
+          "organization_name": "Teds HVAC Plumbing and Electrical"
+        },
+        {
+          "id": "4893100",
+          "linkedin_url": "https://www.linkedin.com/in/jengward/",
+          "first_name": "Jen",
+          "last_name": "Ward",
+          "organization_name": "Cables Roofing and Construction"
+        },
+        {
+          "id": "4893118",
+          "linkedin_url": "https://www.linkedin.com/in/jim-lucker-5b962112/",
+          "first_name": "Jim",
+          "last_name": "Lucker",
+          "organization_name": "Air Doctor AC and Heating"
+        },
+        {
+          "id": "4893120",
+          "linkedin_url": "https://www.linkedin.com/in/harold-garrido-01a1a018/",
+          "first_name": "Harold",
+          "last_name": "Garrido",
+          "organization_name": "Urban Solar"
+        }
+      ]
+    },
+    {
+      "batchIndex": 3,
+      "details": [
+        {
+          "id": "4724310",
+          "linkedin_url": "https://linkedin.com/in/tim-colgan-3493a78",
+          "first_name": "Tim",
+          "last_name": "Colgan",
+          "organization_name": "Mechanical Electrical and Plumbing Partners"
+        },
+        {
+          "id": "4893119",
+          "linkedin_url": "https://www.linkedin.com/in/todd-case-0520b0bb/",
+          "first_name": "Todd",
+          "last_name": "Case",
+          "organization_name": "Airrific Air Conditioning and Heating"
+        },
+        {
+          "id": "4819265",
+          "linkedin_url": "https://www.linkedin.com/in/jason-crew-206b6bb/",
+          "first_name": "Jason",
+          "last_name": "Crew",
+          "organization_name": "Arrow Exterminators"
+        },
+        {
+          "id": "4893104",
+          "linkedin_url": "https://www.linkedin.com/in/ryan-popkin-399416259/",
+          "first_name": "Ryan",
+          "last_name": "Popkin",
+          "organization_name": "At Ease Pest Solutions"
+        },
+        {
+          "id": "4819267",
+          "linkedin_url": "https://www.linkedin.com/in/jeff-pointer/",
+          "first_name": "Jeff",
+          "last_name": "Pointer",
+          "organization_name": "Service Experts Heating and Air"
+        },
+        {
+          "id": "4893076",
+          "linkedin_url": "https://www.linkedin.com/in/joseph-manning-a4330a86/",
+          "first_name": "Joseph",
+          "last_name": "Manning",
+          "organization_name": "All American Roofing"
+        }
+      ]
+    }
+  ],
+  "eligible": 36,
+  "projectedCredits": 36,
+  "creditsAlreadyUsed": 105,
+  "budgetRemaining": 895,
+  "skippedByGate": {
+    "already-enriched": 105,
+    "no-profile-url": 0,
+    "missing-name-or-company": 0,
+    "not-in-list": 97
+  },
+  "warnings": [],
+  "masterFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/contacts.jsonl",
+  "logFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/apollo-enrichment-log.jsonl"
+}

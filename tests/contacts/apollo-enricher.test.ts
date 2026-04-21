@@ -667,3 +667,102 @@ describe('correlateApolloResponse', () => {
     expect(results.every((r) => r.match === false)).toBe(true);
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Scenario: listId filter — target a specific GojiBerry list
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('Scenario: list-id filter', () => {
+  it('only considers contacts in the specified list when listId is provided', async () => {
+    writeMasterFile(masterFile, [
+      makeMaster({
+        id: 1,
+        profileUrl: 'https://linkedin.com/in/in-list',
+        gojiberryState: {
+          listId: 14507,
+          campaignStatus: null,
+          readyForCampaign: false,
+          bounced: false,
+          unsubscribed: false,
+          updatedAt: null,
+        },
+      }),
+      makeMaster({
+        id: 2,
+        profileUrl: 'https://linkedin.com/in/other-list',
+        gojiberryState: {
+          listId: 99,
+          campaignStatus: null,
+          readyForCampaign: false,
+          bounced: false,
+          unsubscribed: false,
+          updatedAt: null,
+        },
+      }),
+      makeMaster({
+        id: 3,
+        profileUrl: 'https://linkedin.com/in/no-list',
+        gojiberryState: {
+          listId: null,
+          campaignStatus: null,
+          readyForCampaign: false,
+          bounced: false,
+          unsubscribed: false,
+          updatedAt: null,
+        },
+      }),
+    ]);
+
+    const apollo = mockApollo({
+      peopleBulkMatch: vi.fn().mockImplementation(async (inputs: { linkedinUrl: string }[]) =>
+        inputs.map((inp) => ({ match: true, email: 'e@e.com', personId: 'p', linkedinUrl: inp.linkedinUrl })),
+      ),
+    });
+    const result = await enrichContacts({
+      masterFilePath: masterFile,
+      logFilePath: logFile,
+      _apollo: apollo,
+      apply: true,
+      runBudget: 50,
+      totalBudget: 500,
+      listId: 14507,
+    });
+
+    // Only id=1 (listId 14507) is enriched. id=2 and id=3 are gate-filtered.
+    expect(result.enriched).toBe(1);
+    expect(result.skippedByGate['not-in-list']).toBe(2);
+  });
+
+  it('considers all eligible contacts when listId is omitted', async () => {
+    writeMasterFile(masterFile, [
+      makeMaster({
+        id: 1,
+        gojiberryState: {
+          listId: 14507,
+          campaignStatus: null,
+          readyForCampaign: false,
+          bounced: false,
+          unsubscribed: false,
+          updatedAt: null,
+        },
+      }),
+      makeMaster({ id: 2, profileUrl: 'https://linkedin.com/in/id2' }),
+    ]);
+
+    const apollo = mockApollo({
+      peopleBulkMatch: vi.fn().mockImplementation(async (inputs: { linkedinUrl: string }[]) =>
+        inputs.map((inp) => ({ match: true, email: 'e@e.com', personId: 'p', linkedinUrl: inp.linkedinUrl })),
+      ),
+    });
+    const result = await enrichContacts({
+      masterFilePath: masterFile,
+      logFilePath: logFile,
+      _apollo: apollo,
+      apply: true,
+      runBudget: 50,
+      totalBudget: 500,
+    });
+
+    expect(result.enriched).toBe(2);
+  });
+});
