@@ -61,11 +61,12 @@ Max length: ${options.maxLength} characters
 
 Requirements:
 - Reference at least one specific buying signal (not generic platitudes)
-- Connect the signal to YOUR OFFER above — do NOT invent or name any other product, platform, tool, or company
+- Connect the signal to YOUR OFFER above. Do NOT invent or name any other product, platform, tool, or company
 - If the fit between the signal and your offer is weak, keep the pitch generic rather than fabricating a product
 - Sound like a real human wrote this after actually reading their profile
+- Do NOT use em dashes (—) or en dashes (–). Real people typing on phones and laptops use commas, periods, or just start a new sentence. Em dashes are the clearest LLM tell.
 - Do NOT use: "I noticed we're both in [industry]", "I came across your profile", or other template phrases
-- Keep it under ${options.maxLength} characters (hard limit — do not exceed)
+- Keep it under ${options.maxLength} characters (hard limit, do not exceed)
 - Write only the message text, nothing else`;
 }
 

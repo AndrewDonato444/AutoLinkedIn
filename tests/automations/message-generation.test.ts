@@ -181,6 +181,16 @@ describe('Scenario: Prompt anchors the LLM to the configured value proposition',
     const prompt = buildMessagePrompt(lead, ICP, VALUE_PROP, { tone: 'casual', maxLength: 300 });
     expect(prompt).toMatch(/your offer/i);
   });
+
+  it('forbids em dashes and en dashes to avoid the classic LLM style tell', () => {
+    const lead = makeLead();
+    const prompt = buildMessagePrompt(lead, ICP, VALUE_PROP, { tone: 'casual', maxLength: 300 });
+    // The rule must name em dashes explicitly so the LLM can't rationalize
+    // them as acceptable punctuation.
+    expect(prompt).toMatch(/em dash(es)?/i);
+    // Include the character itself so the instruction is unambiguous.
+    expect(prompt).toContain('—');
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
