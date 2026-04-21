@@ -8,7 +8,7 @@ components: []
 design_refs: []
 status: implemented
 created: 2026-04-13
-updated: 2026-04-13
+updated: 2026-04-21
 ---
 
 # Personalized Message Generation
@@ -329,3 +329,12 @@ The `resolvePositiveNumber(optionValue, envKey, defaultValue)` helper in `lead-e
 - **`enforceMaxLength` uses sentence boundary**: When a generated message exceeds `maxLength`, it truncates at the last period past 50% of the limit to preserve complete sentences. If no such period exists, it hard-truncates.
 - **`GenerateMessagesOptions` is a named export**: Allows callers to type their option objects without importing the implementation.
 - **`resolvePositiveNumber` imported from `lead-enrichment.ts`**: Not reimplemented — direct import. Consistent option→env→default resolution across all automations.
+
+### 2026-04-21
+
+- **Product-name hallucinations happen when the prompt lacks an offer anchor.** Before this session, `buildMessagePrompt` only passed `ICP_DESCRIPTION` (who to reach), no slot for what the sender sells. The LLM had to invent a product to make the pitch coherent; in one live case it produced "GojiBerry" (our automation platform) as the pitched product, sent to James Diffenderfer on Monday 3:18 PM. Fix: require `VALUE_PROPOSITION` env var, surface it as a distinct "Your Offer" slot, and add the rule "this is the ONLY product/service you may reference — do NOT invent or name any other product, platform, tool, or company." If `VALUE_PROPOSITION` is missing/empty, `ConfigError` before any API call.
+- **Em dashes are the clearest LLM style tell.** Real people typing on phones and laptops use commas, periods, or just start a new sentence. The prompt now explicitly forbids `—` and `–` by naming them AND including the literal `—` character so the rule is unambiguous. Tests assert both appear in the prompt. Also removed em dashes from `VALUE_PROPOSITION` itself — the LLM mirrors its anchor's style.
+- **Plan/apply architecture for message regeneration mirrors Apollo enrichment.** `/regenerate-messages` slash command uses headless `regen-plan.cli.ts` to filter candidates against master, Claude-in-session to generate messages inline using current signals + VALUE_PROPOSITION, then `regen-apply.cli.ts` writes via `updateLead`. No ANTHROPIC_API_KEY needed; compatible with Claude Code Desktop scheduled tasks.
+- **"Already sent in campaign" gate prevents audit confusion.** Regeneration skips contacts where `gojiberryState.campaignStatus` shows a `{type: 'message', stepNumber: >= 1}` event. Overwriting stored message text doesn't un-send it, but it creates a mismatch between "what went out" and "what's on record." Skip is correct.
+- **`--contains TOKEN` surgical regeneration for hallucination cleanup.** When you need to fix only messages containing a specific banned term (e.g., `--contains gojiberry`), the flag targets those without touching anything else. Implies `--force` (otherwise the "already-messaged" gate would skip them).
+- **Mechanical em-dash → comma replacement for already-approved content.** When 23 pending messages had em dashes from the pre-rule era, the content was fine — only the punctuation needed fixing. Regex swap (`/\s*[—–]\s*/g → ', '`) preserved intent without regenerating.

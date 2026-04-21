@@ -367,3 +367,67 @@ function sleep(ms: number): Promise<void> {
 ```
 
 Per SDD guidelines: three similar lines is better than a premature abstraction.
+
+## MCP tool responses are large; extract minimal fields in-process
+
+**Context:** Apollo `people_bulk_match` returns ~2,000+ lines of JSON per batch (organization keywords, employment history, photo URLs, etc.). When a Claude-Code session invokes an MCP tool and the response exceeds token limits, the harness writes the full output to a temp file and returns a path.
+
+**Pattern:** Don't read the full MCP response into Claude's context. Fetch with Node, `JSON.parse` the temp file, extract only the fields your downstream code consumes (for Apollo: `id`, `linkedin_url`, `email`, `email_status`), write the compact form to a proper data file, then proceed.
+
+**Why:** Keeps Claude's context small and makes the intermediate data auditable. 5 Apollo batches × 80KB raw = 400KB; compact form is ~5KB.
+
+---
+
+## Apollo's bulk_match doesn't echo back the correlation `id` you sent
+
+**Gotcha:** The MCP schema documents `id` on each input as "optional unique identifier... used to match results." It is NOT echoed in the response. If you pass 10 contacts and get 10 matches back, you can't correlate them by `id` — you correlate by `linkedin_url`, which Apollo normalizes (https→http, strips trailing slash, drops www).
+
+**Fix:** Normalize URLs before comparing. A centralized `normalizeLinkedInUrl` util at `src/utils/linkedin-url.ts` canonicalizes to `http://linkedin.com/<path>`. Tests reproduce the exact production pair we observed (`https://www.linkedin.com/in/luke-gaeta-636244375/` ↔ `http://www.linkedin.com/in/luke-gaeta-636244375`).
+
+---
+
+## Apollo fuzzy-matches by name when URL misses; reject those as no-match
+
+**Gotcha:** When the exact LinkedIn URL you sent isn't in Apollo's database, Apollo may return a DIFFERENT person with a similar name/company. Example: we sent `/in/michaeldmyers`, Apollo returned `/in/mike-myers-308010186`. If you correlate by URL, these correctly become no-match (safeguard working). If you correlate loosely, you'd write the wrong person's email to your contact.
+
+**Rule:** Correlation is by normalized URL only. Name-based fuzzy-matches don't correlate — treat as no-match. Log it so you can audit later.
+
+---
+
+## GojiBerry `campaignStatus` is an array of event objects, not a string
+
+**Gotcha:** The field comes back as `[{type, state, createdAt, stepNumber}, ...]`. A `TypeScript as string | null` cast compiles fine but serializes to `"[object Object]"` when JSON-stringified. Found 43 contacts with corrupted data before catching this.
+
+**Fix:** Define a `CampaignEvent` type, normalize on read with `normalizeCampaignStatus(raw)` that validates shape + drops malformed entries.
+
+---
+
+## GojiBerry REST API lacks list-membership endpoints
+
+**Gotcha:** You cannot add a contact to a list via `PATCH /v1/contact/:id` with `listId`, `POST /v1/list/:id/contact(s)`, or any of six other variants we probed. All return 400 or 404. List membership appears to be a MCP-only operation or UI-only.
+
+**Practical impact:** Automation can create contacts and enrich them, but enrollment in a campaign list happens via UI or MCP. Plan around this — don't bake automatic list-enrollment into the daily scan.
+
+---
+
+## Paginated fetches need a named page cap + console.warn on hit
+
+**Pattern:** `fetchAllGojiberry()` caps at `MAX_PAGES=100`. If the cap is hit, `console.warn` so silent truncation is visible. Previously hard-coded `if (page > 100) break` was a latent bug at 10k+ contact scale — master would silently lose records.
+
+```ts
+if (page > MAX_PAGES) {
+  console.warn(`Hit MAX_PAGES=${MAX_PAGES} cap (~${MAX_PAGES * PAGE_SIZE} contacts). Master may be incomplete.`);
+  break;
+}
+```
+
+---
+
+## Master-file-as-dedup-source beats API-search dedup
+
+**Pattern:** Dedup checks against `data/contacts.jsonl` (master store) instead of `GET /v1/contact?search=<url>` (GojiBerry substring search). Reasons:
+1. Zero API calls in the hot path.
+2. No dependency on GojiBerry's search semantics (substring matching misses when stored URL format differs from scanned URL format).
+3. Testable without mocking the API — pass `_existingUrls: new Set([...])` directly.
+
+**Prerequisite:** Caller must refresh master before scanning (`daily-lead-scan.ts` calls `rebuildMaster()` as step 0). AuthError from rebuild aborts; non-auth errors warn-and-continue (rather-stale-than-stopped).

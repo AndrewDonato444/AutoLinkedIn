@@ -377,3 +377,98 @@ A data model's `status` field (machine-readable, for serialization and logging) 
 - Display = `"too early (3/10 sends)"` (abbreviated, fits the output table)
 
 Document both in the spec's Output Format section and Function Signature. The drift check will flag them as inconsistent if only one is updated. Name the pair in comments in the report builder so the difference is intentional, not accidental.
+
+## Em dashes are the clearest LLM style tell — forbid explicitly
+
+**Pattern:** When writing prompts for message generation, name em dashes (`—`) explicitly as forbidden AND include the literal character in the instruction:
+
+```
+Do NOT use em dashes (—) or en dashes (–). Real people typing on phones
+and laptops use commas, periods, or just start a new sentence. Em dashes
+are the clearest LLM tell.
+```
+
+**Why both:** naming it ("em dash") lets the LLM pattern-match the rule; including the character removes any ambiguity about what punctuation is banned. Test asserts the prompt contains BOTH the phrase `em dash` and the character `—`.
+
+**Also remove from VALUE_PROPOSITION itself** — the LLM mirrors the style of the context it's given. If your anchor text uses em dashes, messages will too.
+
+---
+
+## Prompt needs a distinct VALUE_PROPOSITION slot, not just ICP_DESCRIPTION
+
+**Gotcha:** If you prompt an LLM to "write a LinkedIn message pitching to this ICP" and only give it ICP context (who to reach), the LLM has to invent a product to pitch. In production this produced messages referencing "GojiBerry" — the automation tool's project name, not the actual product (SalesEdge).
+
+**Fix:** Add a distinct `Your Offer` slot in the prompt with the `VALUE_PROPOSITION` env var, and a rule: "this is the ONLY product/service you may reference. Do NOT invent or name any other product, platform, tool, or company."
+
+**Defense in depth:** `VALUE_PROPOSITION` missing/empty throws `ConfigError` before any API call — no silent fallback to "generic pitch."
+
+---
+
+## Plan/apply split for MCP-driven external APIs
+
+**Problem:** MCP tools (Apollo, etc.) can only be called from inside a Claude-Code session — Node subprocesses can't invoke them. But you still want auditable, idempotent, budget-capped operations.
+
+**Pattern:** Split into three pieces:
+
+1. **Headless plan CLI** — reads master, applies all gates and budget caps, writes a plan JSON to disk (pure Node, testable).
+2. **Claude-in-session** — reads the plan, calls the MCP tool per batch, writes raw responses to disk.
+3. **Headless apply CLI** — takes plan + raw responses, correlates, writes results back to master + log.
+
+A `.claude/commands/<name>.md` slash command orchestrates all three steps. Works in scheduled tasks (Claude Code Desktop) AND doesn't require API keys in `.env.local` for the SDK path.
+
+Applied to `/apollo-enrich` and `/regenerate-messages`. Same shape both times.
+
+---
+
+## "Just do them all" does NOT cover external-API spend
+
+**Rule:** When a user says "do everything," pause before ANY operation that spends real external credits (Apollo, ScrapingDog, etc.). Explicit confirmation must precede the spend, even if the user was batch-approving other work.
+
+**Why:** User's blanket approval implicitly assumed zero-cost items. External spend is categorically different and easy to overlook as the agent works through a list.
+
+**Practical:** Show the cost estimate, the credit balance, and what the user gets for the spend. Then ask.
+
+---
+
+## Richer-source-wins merge when multiple sources carry overlapping signals
+
+**Gotcha:** When merging data from two sources for the same contact (e.g., scan-log + GojiBerry profileBaseline), a simple "last-wins" rule is fragile:
+- Scan-log A: `keySignal` field parsed as single-element array.
+- GojiBerry B: `Signals:` line parsed as 5-element array.
+
+"Last-wins" would drop the richer data. Switched to "more-signals-wins":
+
+```ts
+intentSignals:
+  (entry.intentSignals?.length ?? 0) > base.intentSignals.length
+    ? entry.intentSignals!
+    : base.intentSignals,
+```
+
+Preserves Luke Gaeta's case (GojiBerry truncated, scan log has full signals) AND Cory Van Wagenen's case (scan log has short summary, GojiBerry has full list).
+
+---
+
+## Idempotency gates + retry ceiling for flaky external services
+
+**Gotcha:** A naive "skip already-enriched" gate is fine UNTIL enrichment fails. Then the contact has `apolloEnrichedAt: null` forever, and every future run retries the same bad URL.
+
+**Fix:** Add `apolloErrorCount` field. Increment on each error. After `MAX_APOLLO_ERROR_RETRIES` (3), mark the contact as enriched anyway (with no-match outcome) so future runs skip it.
+
+**Rule:** any idempotency gate over a flaky external service needs a retry ceiling. Otherwise you either burn credits re-trying forever or never retry enough for transient failures.
+
+---
+
+## Deep-equal > JSON.stringify for structural comparison
+
+**Gotcha:** `JSON.stringify(a) === JSON.stringify(b)` works if and only if key order matches. Object literal constructors happen to emit consistent order, but any reshuffle of the schema fields silently breaks the comparison. Discovered this latently during code review — tests passed but equality was fragile.
+
+**Fix:** Small custom deep-equal (~15 lines, order-independent, handles arrays and nested objects). Better than pulling in `lodash.isequal` for one use site.
+
+---
+
+## Hoist timestamps above per-item loops
+
+**Pattern:** In `applyEnrichmentResults`, hoisting `const now = new Date().toISOString()` above the per-contact loop means all contacts in one run share the same timestamp. Before: ms-level drift across the batch. After: clean audit trail showing "these 50 contacts were all processed at 2026-04-21T11:42:15Z."
+
+**Rule of thumb:** if the semantic meaning of the timestamp is "when this operation happened" (not "when each item was processed individually"), hoist.

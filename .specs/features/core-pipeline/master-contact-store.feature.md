@@ -25,7 +25,7 @@ components:
 design_refs: []
 status: implemented
 created: 2026-04-20
-updated: 2026-04-20
+updated: 2026-04-21
 ---
 
 # Master Contact Store with Apollo Enrichment
@@ -432,4 +432,14 @@ To proceed, re-run with --apply:
 
 ## Learnings
 
-_(to be filled in after implementation via /compound)_
+### 2026-04-21
+
+- **MCP tool responses can exceed Claude's token limits; extract compact JSON before apply.** Apollo `people_bulk_match` returns ~80KB per batch of 10. The harness writes the raw response to a temp file and returns a path. Don't read the raw file into Claude's context; use Node to parse and extract just `{id, linkedin_url, email, email_status}` to `data/apollo-plans/<runId>-mcp-response.json`, then run apply.
+- **Apollo correlation is by normalized URL, not by the `id` field.** Apollo's `apollo_people_bulk_match` schema documents `id` as "optional unique identifier... used to match results," but the response does NOT echo it back. Correlate by `normalizeLinkedInUrl(match.linkedin_url)`.
+- **Apollo fuzzy-matches by name/company when the LinkedIn URL doesn't hit — those are intentional no-matches.** We sent `/in/michaeldmyers`, Apollo returned `/in/mike-myers-308010186`. Our correlator correctly rejected this as no-match. The "missed correlations" metric is a feature, not a bug.
+- **Scan-log signal extraction depends on format heuristics.** Three production formats coexist in `profileBaseline`: structured (`Reasoning:`/`Signals:` labels), paragraph (`Score: X. ... Signals: a, b, c.`), and ultra-minimal (just the score). `parseProfileBaseline` handles all three; tests cover each case with a real production example.
+- **"Richer source wins" merge beats "scan-log always wins."** Some April-20 scan logs have only a `keySignal` summary; the GojiBerry profileBaseline has 5 structured signals for the same contact. Rule: the source with MORE signals wins, falling back to scan-log on ties. Preserves both Luke Gaeta's case (GojiBerry truncated, scan-log rich) and Cory Van Wagenen's case (scan-log short, GojiBerry rich).
+- **Idempotent "already-enriched" gates freeze partial data.** April-14 scan produced 48 contacts with `profileBaseline = "ICP Score: X/100"` only. Because `fit` was set, every subsequent enrichment run skipped them. Net effect: data frozen at thinnest point for the contact's life. Solution: re-enrich via Apollo raw-response data (free, already on disk) + ScrapingDog fallback for the 9 contacts Apollo fuzzy-missed.
+- **Retry ceiling via `apolloErrorCount` + `MAX_APOLLO_ERROR_RETRIES`.** Without a cap, flaky URLs get retried forever because `apolloEnrichedAt` stays null. Ceiling: after 3 errors, mark as enriched-with-no-match anyway. Prevents ghost retry loops.
+- **Plan/apply split is the right shape for MCP-driven ops.** Headless plan CLI → Claude MCP calls → headless apply CLI. Works in Claude-Code scheduled tasks without requiring API keys. Applied identically in `/apollo-enrich` and `/regenerate-messages`.
+- **`--list-id <n>` filter respects human judgment.** When targeting a campaign (e.g., SalesEdge = 14507), the filter adds a fourth "not-in-list" gate to `selectEligible`. Used to enrich the live campaign's 141 contacts across 3 runs without touching contacts the user hasn't enrolled yet.

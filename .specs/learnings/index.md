@@ -8,6 +8,36 @@ Cross-cutting patterns extracted from implementation sessions. Read the linked f
 - [API & Data Patterns](api.md) — HTTP client design, two-tier 404 errors, rate limiting, env config, retry backoff, SDK type casting, LLM-delegated ranking, ISO date filenames
 - [General Patterns](general.md) — Thin orchestration layers, named threshold constants, date math edge cases, spec output template drift
 
+## Recent Learnings (2026-04-21)
+
+**Master Contact Store + Apollo MCP Enrichment + Message Regeneration** — a long session that shipped the master store, the full Apollo + message-regeneration plan/apply pipelines, and fixed several live bugs in the running SalesEdge campaign. Top lessons:
+
+1. **Em dashes are the clearest LLM style tell** (general.md): Forbid in the prompt by name AND with the literal `—` character. Test asserts both appear in the prompt output. Also remove em dashes from `VALUE_PROPOSITION` — the LLM mirrors its anchor text.
+
+2. **VALUE_PROPOSITION as distinct prompt slot prevents product-name hallucinations** (general.md): If prompted to "pitch to this ICP" with no product anchor, the LLM invents one. Real bug in prod: messages referencing "GojiBerry" (our automation tool) as if it were the product. Fix: separate `Your Offer` slot + explicit "do NOT invent products" rule + ConfigError if empty.
+
+3. **Plan/apply split for MCP-driven external APIs** (general.md): Node subprocesses can't call MCP tools; Claude-in-session can. Split into headless plan CLI → Claude MCP calls → headless apply CLI. Applied to `/apollo-enrich` and `/regenerate-messages`. Works in scheduled tasks without API keys.
+
+4. **Apollo's bulk_match doesn't echo back the correlation `id`** (api.md): Correlate by normalized LinkedIn URL instead. Centralized `normalizeLinkedInUrl` util handles https↔http, www↔no-www, trailing-slash, query, fragment.
+
+5. **Apollo fuzzy-matches by name when URL misses** (api.md): Returns a DIFFERENT person with a similar name. Correlator correctly rejects these as no-match — don't write the wrong person's email to your contact.
+
+6. **GojiBerry `campaignStatus` is an array, not a string** (api.md): Naive `as string | null` cast compiles but serializes to `"[object Object]"`. Caught 43 corrupted records. Define `CampaignEvent` type, normalize on read.
+
+7. **Master-file-as-dedup-source beats API-search dedup** (api.md): Zero API calls in the hot path, no dependency on GojiBerry's substring-search semantics, and testable via `_existingUrls: new Set([...])` injection.
+
+8. **vi.mock at module top for cron transitive deps** (testing.md): When an orchestrator gains a transitive dep that hits the network (e.g., `daily-lead-scan` → `rebuildMaster`), globally stub at the top of the test file unless every test already injects it. Saved 49s per run.
+
+9. **Richer-source-wins merge beats last-wins** (general.md): When two sources carry overlapping signals of varying quality, pick the one with more data. Simple last-wins would drop the richer source.
+
+10. **Retry ceiling for flaky external services** (general.md): Naive idempotency gate ("skip enriched") creates infinite retry loops when enrichment fails. Add `apolloErrorCount` + `MAX_APOLLO_ERROR_RETRIES=3`; mark as enriched-with-no-match after the cap.
+
+11. **"Just do them all" doesn't cover external-API spend** (general.md): Blanket user approval implicitly excludes real-money operations. Pause before ANY credit-spending call, even if batch-approving.
+
+12. **MCP tool responses can exceed token limits; extract minimal fields in-process** (api.md): When an MCP response is written to a temp file, don't read it into Claude's context. Node-parse the temp file, extract only the fields downstream code consumes, proceed with the compact form.
+
+---
+
 ## Recent Learnings (2026-04-13)
 
 **Message Style Optimization** — the most hard-won lessons from this session:

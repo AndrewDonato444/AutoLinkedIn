@@ -446,3 +446,58 @@ When all four properties are in place, zero SDK mocking is needed and test setup
 When asserting on human-readable summary strings, the test must match the exact format the function produces — not a plausible approximation. A test expected `'5 enriched'` but the actual output was `'5 leads enriched, 3 failed'`. The assertion passed a similar-looking string check and the mismatch went undetected until a subsequent failure exposed it.
 
 Fix: assert with `toContain('5 leads enriched, 3 failed')` or check the full string. When writing the test assertion, look at the actual output string in the source (or run the function once) before hardcoding the expected value. Prose output strings change more often than structured data — treat them like snapshot tests.
+
+## `vi.mock` at module top for cron-level transitive dependencies
+
+**Problem:** `daily-lead-scan.ts` calls `rebuildMaster()` as step 0. Default `rebuildMaster()` instantiates `GojiBerryClient` and paginates through the real API — tests that only injected `_discoverLeads` inadvertently hit live GojiBerry, adding 49s per run.
+
+**Fix:** Globally stub `rebuildMaster` at the top of the test file:
+
+```ts
+vi.mock('../../src/contacts/rebuild-master.js', () => ({
+  rebuildMaster: vi.fn().mockResolvedValue({ added: 0, updated: 0, unchanged: 0 }),
+}));
+
+import { runDailyLeadScan } from '../../src/automations/daily-lead-scan.js';
+```
+
+Individual tests that want to verify rebuild behavior still inject `_rebuildMaster` explicitly and assert on that mock. Global stub is the default; injection overrides.
+
+**Rule of thumb:** when you add a new transitive dep to an orchestrator, `vi.mock` the module before importing the orchestrator unless every existing test already stubs it.
+
+---
+
+## `_existingUrls: new Set([...])` for file-reading dedup
+
+**Pattern:** `discoverLeads()` reads the master JSONL to build its dedup set, but tests shouldn't need to write a real file. Added `_existingUrls?: Set<string>` as a test-only injection that bypasses the file read entirely:
+
+```ts
+// In source
+const seenUrls: Set<string> = options._existingUrls
+  ? new Set(options._existingUrls)
+  : await loadSeenUrlsFromMaster(options.masterFilePath);
+
+// In tests
+await discoverLeads({
+  _webSearch: vi.fn().mockResolvedValue([lead]),
+  _existingUrls: new Set(['http://linkedin.com/in/already-exists']),
+});
+```
+
+Same pattern as `_client`, `_webSearch`, `_messageGenerator` — keeps dedup tests hermetic and fast.
+
+---
+
+## Reproduce-the-prod-bug tests for URL normalization
+
+**Pattern:** When a production bug shows a specific data shape, capture it verbatim in a test. `normalizeLinkedInUrl` has a test for the exact pair observed in the Apollo MCP response:
+
+```ts
+it('handles the exact real Apollo normalization we observed', () => {
+  const sent = 'https://www.linkedin.com/in/luke-gaeta-636244375/';
+  const got = 'http://www.linkedin.com/in/luke-gaeta-636244375';
+  expect(normalizeLinkedInUrl(sent)).toBe(normalizeLinkedInUrl(got));
+});
+```
+
+**Why:** Abstract "handles trailing slash" tests drift over time; this anchor stays tied to a real production observation. If regression ever breaks it, the failing assertion shows the exact shape that matters.
