@@ -58,6 +58,12 @@ export interface PlanOptions {
   totalBudget: number;
   batchSize?: number;
   limit?: number;
+  /**
+   * Restrict enrichment to contacts whose `gojiberryState.listId` matches.
+   * Useful for targeting a specific campaign's list (e.g. SalesEdge=14507).
+   * Omit to consider all eligible contacts across master.
+   */
+  listId?: number;
 }
 
 export interface EnrichOptions extends PlanOptions {
@@ -158,7 +164,10 @@ function appendLog(logFilePath: string, entries: EnrichmentLogEntry[]): void {
   fs.appendFileSync(logFilePath, body);
 }
 
-function selectEligible(contacts: MasterContact[]): {
+function selectEligible(
+  contacts: MasterContact[],
+  listId?: number,
+): {
   eligible: MasterContact[];
   skippedByGate: Record<string, number>;
 } {
@@ -167,9 +176,14 @@ function selectEligible(contacts: MasterContact[]): {
     'no-profile-url': 0,
     'missing-name-or-company': 0,
   };
+  if (listId !== undefined) skippedByGate['not-in-list'] = 0;
   const eligible: MasterContact[] = [];
 
   for (const c of contacts) {
+    if (listId !== undefined && c.gojiberryState?.listId !== listId) {
+      skippedByGate['not-in-list']++;
+      continue;
+    }
     if (c.apolloEnrichedAt) {
       skippedByGate['already-enriched']++;
       continue;
@@ -192,7 +206,7 @@ function selectEligible(contacts: MasterContact[]): {
 export async function planEnrichment(options: PlanOptions): Promise<EnrichmentPlan> {
   const contacts = await readMaster(options.masterFilePath);
   const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
-  const { eligible, skippedByGate } = selectEligible(contacts);
+  const { eligible, skippedByGate } = selectEligible(contacts, options.listId);
 
   const warnings: string[] = [];
   const alreadyConsumed = creditsConsumedFromLog(options.logFilePath);

@@ -1,0 +1,393 @@
+{
+  "runId": "8773b421-b52d-44b3-a12d-5755f6c0a61f",
+  "batches": [
+    {
+      "batchIndex": 0,
+      "details": [
+        {
+          "id": "4819268",
+          "linkedin_url": "https://www.linkedin.com/in/ryan-bruinsma-686a3124/",
+          "first_name": "Ryan",
+          "last_name": "Bruinsma",
+          "organization_name": "Four Seasons Heating"
+        },
+        {
+          "id": "4893116",
+          "linkedin_url": "https://www.linkedin.com/in/jim-rossiter/",
+          "first_name": "Jim",
+          "last_name": "Rossiter",
+          "organization_name": "Mighty Dog Roofing"
+        },
+        {
+          "id": "4967325",
+          "linkedin_url": "https://www.linkedin.com/in/cary-welch-38547992/",
+          "first_name": "Cary",
+          "last_name": "Welch",
+          "organization_name": "Complete Solar Pros"
+        },
+        {
+          "id": "4967326",
+          "linkedin_url": "https://www.linkedin.com/in/william-restrepo-99a684211/",
+          "first_name": "William",
+          "last_name": "Restrepo",
+          "organization_name": "Rocky Mountain Roofing and Restoration"
+        },
+        {
+          "id": "4967347",
+          "linkedin_url": "https://www.linkedin.com/in/nickmaurer/",
+          "first_name": "Nicholas",
+          "last_name": "Maurer",
+          "organization_name": "Ehrlich Pest Control"
+        },
+        {
+          "id": "5151749",
+          "linkedin_url": "https://www.linkedin.com/in/shawn-singleton-a84923229",
+          "first_name": "Shawn",
+          "last_name": "Singleton",
+          "organization_name": "Gecko Green"
+        },
+        {
+          "id": "4724243",
+          "linkedin_url": "https://linkedin.com/in/sandy-farrell-ba3a5923",
+          "first_name": "Sandy",
+          "last_name": "Farrell",
+          "organization_name": "Hallmark Farrell Roofing Company"
+        },
+        {
+          "id": "4724247",
+          "linkedin_url": "https://linkedin.com/in/steve-hadley-4b897320",
+          "first_name": "Steve",
+          "last_name": "Hadley",
+          "organization_name": "Elite Roofing Solutions Inc."
+        },
+        {
+          "id": "4724268",
+          "linkedin_url": "https://linkedin.com/in/jim-wobbles-09414037",
+          "first_name": "Jim",
+          "last_name": "Wobbles",
+          "organization_name": "National Fire & Safety"
+        },
+        {
+          "id": "4724341",
+          "linkedin_url": "https://linkedin.com/in/michaeldmyers",
+          "first_name": "Mike",
+          "last_name": "Myers",
+          "organization_name": "Abacus Plumbing, Air Conditioning & Electrical"
+        }
+      ]
+    },
+    {
+      "batchIndex": 1,
+      "details": [
+        {
+          "id": "4724347",
+          "linkedin_url": "https://linkedin.com/in/carter-gregory-04ab58173",
+          "first_name": "Carter",
+          "last_name": "Gregory",
+          "organization_name": "Black Diamond Roofing Solutions"
+        },
+        {
+          "id": "4819271",
+          "linkedin_url": "https://www.linkedin.com/in/bekhruz-nagzibekov-74a38620a/",
+          "first_name": "Bekhruz",
+          "last_name": "Nagzibekov",
+          "organization_name": "United HVAC Plumbing and Electrical"
+        },
+        {
+          "id": "4893072",
+          "linkedin_url": "https://www.linkedin.com/in/christopher-donnee-589954b8/",
+          "first_name": "Christopher",
+          "last_name": "Donnee",
+          "organization_name": "Baker Home Exteriors"
+        },
+        {
+          "id": "4893132",
+          "linkedin_url": "https://www.linkedin.com/in/scott-seifert-694486100/",
+          "first_name": "Scott",
+          "last_name": "Seifert",
+          "organization_name": "Smithereen Pest Management"
+        },
+        {
+          "id": "4967306",
+          "linkedin_url": "https://www.linkedin.com/in/peterjamesrubino/",
+          "first_name": "Peter",
+          "last_name": "Rubino",
+          "organization_name": "Sustainable Pest Systems Inc"
+        },
+        {
+          "id": "4967328",
+          "linkedin_url": "https://www.linkedin.com/in/austinshaffer/",
+          "first_name": "Austin",
+          "last_name": "Shaffer",
+          "organization_name": "B2B Roofing Restoration"
+        },
+        {
+          "id": "4967329",
+          "linkedin_url": "https://www.linkedin.com/in/steve-o-meara-aa4108231/",
+          "first_name": "Steve",
+          "last_name": "OMeara",
+          "organization_name": "Premier Roofing Company"
+        },
+        {
+          "id": "4967342",
+          "linkedin_url": "https://www.linkedin.com/in/georgegreer/",
+          "first_name": "George",
+          "last_name": "Greer",
+          "organization_name": "Sunny Restoration Roofing"
+        },
+        {
+          "id": "4967345",
+          "linkedin_url": "https://www.linkedin.com/in/chris-stillion-141a38b9/",
+          "first_name": "Chris",
+          "last_name": "Stillion",
+          "organization_name": "Berrett Pest Control"
+        },
+        {
+          "id": "4967348",
+          "linkedin_url": "https://www.linkedin.com/in/joshua-powell-usu/",
+          "first_name": "Joshua",
+          "last_name": "Powell",
+          "organization_name": "Fox Pest Control"
+        }
+      ]
+    },
+    {
+      "batchIndex": 2,
+      "details": [
+        {
+          "id": "4724246",
+          "linkedin_url": "https://linkedin.com/in/dominic-swingle-41469561",
+          "first_name": "Dominic",
+          "last_name": "Swingle",
+          "organization_name": "Swingle Family Roofing"
+        },
+        {
+          "id": "4724271",
+          "linkedin_url": "https://linkedin.com/in/lavonnedideon",
+          "first_name": "Lavonne",
+          "last_name": "Dideon",
+          "organization_name": "Aspire Pest Solutions"
+        },
+        {
+          "id": "4724296",
+          "linkedin_url": "https://linkedin.com/in/isaac-dixon-629353203",
+          "first_name": "Isaac",
+          "last_name": "Dixon",
+          "organization_name": "Bug Guard"
+        },
+        {
+          "id": "4724300",
+          "linkedin_url": "https://linkedin.com/in/nicholas-steele-493574197",
+          "first_name": "Nicholas",
+          "last_name": "Steele",
+          "organization_name": "Complete Roofing"
+        },
+        {
+          "id": "4724342",
+          "linkedin_url": "https://linkedin.com/in/chelsea-stone-tampa",
+          "first_name": "Chelsea",
+          "last_name": "Stone",
+          "organization_name": "Regional Home Services"
+        },
+        {
+          "id": "4724346",
+          "linkedin_url": "https://linkedin.com/in/diffenderferj",
+          "first_name": "James",
+          "last_name": "Diffenderfer",
+          "organization_name": "TEC The Exterior Company"
+        },
+        {
+          "id": "4819262",
+          "linkedin_url": "https://www.linkedin.com/in/scott-noakes-9889721b3",
+          "first_name": "Scott",
+          "last_name": "Noakes",
+          "organization_name": "Engineered Fire"
+        },
+        {
+          "id": "4967309",
+          "linkedin_url": "https://www.linkedin.com/in/cooper-mills-233789306/",
+          "first_name": "Cooper",
+          "last_name": "Mills",
+          "organization_name": "Moxie Pest Control"
+        },
+        {
+          "id": "4967318",
+          "linkedin_url": "https://www.linkedin.com/in/jason-beck-24000421/",
+          "first_name": "Jason",
+          "last_name": "Beck",
+          "organization_name": "Fire Water Sprinkler Protection"
+        },
+        {
+          "id": "4967319",
+          "linkedin_url": "https://www.linkedin.com/in/rodney-turner-b7644648/",
+          "first_name": "Rodney",
+          "last_name": "Turner",
+          "organization_name": "USA Fire Protection"
+        }
+      ]
+    },
+    {
+      "batchIndex": 3,
+      "details": [
+        {
+          "id": "4967322",
+          "linkedin_url": "https://www.linkedin.com/in/blythe-hirst-35533123a/",
+          "first_name": "Blythe",
+          "last_name": "Hirst",
+          "organization_name": "Cascade Fire and Safety"
+        },
+        {
+          "id": "4967330",
+          "linkedin_url": "https://www.linkedin.com/in/steve-rothel-4748a7339/",
+          "first_name": "Steve",
+          "last_name": "Rothel",
+          "organization_name": "WM Commercial Roofing"
+        },
+        {
+          "id": "4967331",
+          "linkedin_url": "https://www.linkedin.com/in/shawn-milliken-a87b635/",
+          "first_name": "Shawn",
+          "last_name": "Milliken",
+          "organization_name": "Roofing by Curry"
+        },
+        {
+          "id": "4967335",
+          "linkedin_url": "https://www.linkedin.com/in/luke-demarcus-2a1a0611a/",
+          "first_name": "Luke",
+          "last_name": "DeMarcus",
+          "organization_name": "Moxie Pest Control"
+        },
+        {
+          "id": "4967337",
+          "linkedin_url": "https://www.linkedin.com/in/shawn-coleman-ab9b23143/",
+          "first_name": "Shawn",
+          "last_name": "Coleman",
+          "organization_name": "Accurate Termite and Pest Control"
+        },
+        {
+          "id": "4967339",
+          "linkedin_url": "https://www.linkedin.com/in/madison-plemmons-827364216/",
+          "first_name": "Madison",
+          "last_name": "Plemmons",
+          "organization_name": "Midwest Roofing"
+        },
+        {
+          "id": "4967346",
+          "linkedin_url": "https://www.linkedin.com/in/todd-p-stubbs-087266a/",
+          "first_name": "Todd",
+          "last_name": "Stubbs",
+          "organization_name": "Hughes Exterminators"
+        },
+        {
+          "id": "4967349",
+          "linkedin_url": "https://www.linkedin.com/in/phillip-atkins-18b3759b/",
+          "first_name": "Phillip",
+          "last_name": "Atkins",
+          "organization_name": "Cooks Pest Control"
+        },
+        {
+          "id": "4724295",
+          "linkedin_url": "https://linkedin.com/in/christopher-helton-95a16325",
+          "first_name": "Christopher",
+          "last_name": "Helton",
+          "organization_name": "Gibson Pest Control"
+        },
+        {
+          "id": "4724344",
+          "linkedin_url": "https://linkedin.com/in/jeff-stamps-53701612",
+          "first_name": "Jeff",
+          "last_name": "Stamps",
+          "organization_name": "Lee's Air, Plumbing, Heating, & Roofing"
+        }
+      ]
+    },
+    {
+      "batchIndex": 4,
+      "details": [
+        {
+          "id": "4967308",
+          "linkedin_url": "https://www.linkedin.com/in/tennyson-pay-0599ba261/",
+          "first_name": "Tennyson",
+          "last_name": "Pay",
+          "organization_name": "Homeguard Pest Control"
+        },
+        {
+          "id": "4967340",
+          "linkedin_url": "https://www.linkedin.com/in/scott-haff/",
+          "first_name": "Scott",
+          "last_name": "Haff",
+          "organization_name": "HVAC Plumbing Electrical Contractor"
+        },
+        {
+          "id": "4724260",
+          "linkedin_url": "https://linkedin.com/in/charlie-conklin-17251312",
+          "first_name": "Charlie",
+          "last_name": "Conklin",
+          "organization_name": "Sentry Heating, Air Conditioning, Plumbing & Electrical"
+        },
+        {
+          "id": "4724267",
+          "linkedin_url": "https://linkedin.com/in/wiley-moss-65a367b2",
+          "first_name": "Wiley",
+          "last_name": "Moss",
+          "organization_name": "Moss Roofing Houston"
+        },
+        {
+          "id": "4724269",
+          "linkedin_url": "https://linkedin.com/in/justin-koen",
+          "first_name": "Justin",
+          "last_name": "Koen",
+          "organization_name": "Sexton Lawn & Landscape"
+        },
+        {
+          "id": "4724297",
+          "linkedin_url": "https://linkedin.com/in/mark-hendricks-092373bb",
+          "first_name": "Mark",
+          "last_name": "Hendricks",
+          "organization_name": "General Pest Environmental Solutions"
+        },
+        {
+          "id": "4724316",
+          "linkedin_url": "https://linkedin.com/in/matthew-geyer-99679b12b",
+          "first_name": "Matthew",
+          "last_name": "Geyer",
+          "organization_name": "Utah's Best Home Pros"
+        },
+        {
+          "id": "4893073",
+          "linkedin_url": "https://www.linkedin.com/in/nichsheldon/",
+          "first_name": "Nich",
+          "last_name": "Sheldon",
+          "organization_name": "VALOR Roof and Solar"
+        },
+        {
+          "id": "4967310",
+          "linkedin_url": "https://www.linkedin.com/in/bryn-nelson-4b644a268/",
+          "first_name": "Bryn",
+          "last_name": "Nelson",
+          "organization_name": "Avayda Pest Control"
+        },
+        {
+          "id": "4967313",
+          "linkedin_url": "https://www.linkedin.com/in/ryan-sharrott-b15b4b1ab/",
+          "first_name": "Ryan",
+          "last_name": "Sharrott",
+          "organization_name": "Ryan Refrigeration Heating and Air"
+        }
+      ]
+    }
+  ],
+  "eligible": 86,
+  "projectedCredits": 50,
+  "creditsAlreadyUsed": 55,
+  "budgetRemaining": 945,
+  "skippedByGate": {
+    "already-enriched": 55,
+    "no-profile-url": 0,
+    "missing-name-or-company": 0,
+    "not-in-list": 97
+  },
+  "warnings": [],
+  "masterFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/contacts.jsonl",
+  "logFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/apollo-enrichment-log.jsonl"
+}

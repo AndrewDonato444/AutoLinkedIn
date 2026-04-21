@@ -1,0 +1,304 @@
+{
+  "matches": [
+    {
+      "id": "66f5714a19c7bd0001cadbdb",
+      "linkedin_url": "http://www.linkedin.com/in/ryan-bruinsma-686a3124",
+      "email": "rbruinsma@fourseasonshomeservices.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "66f607bface51a00013ff1ad",
+      "linkedin_url": "http://www.linkedin.com/in/jim-rossiter-894975",
+      "email": "jrossiter@mightydogroofing.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "66dca496ec52020001d487b8",
+      "linkedin_url": "http://www.linkedin.com/in/cary-welch-38547992",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "66f8f8cd7f4d33000108f3f4",
+      "linkedin_url": "http://www.linkedin.com/in/william-restrepo-99a684211",
+      "email": "william@rockymountainroofing.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "54a95b817468692d1c497911",
+      "linkedin_url": "http://www.linkedin.com/in/nickmaurer",
+      "email": "nicholas.maurer@jcehrlich.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "631886ae9fd67300014d927a",
+      "linkedin_url": "http://www.linkedin.com/in/shawn-singleton-a84923229",
+      "email": "ssingleton@geckogreen.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "54a6f6857468696b7f6c5c08",
+      "linkedin_url": "http://www.linkedin.com/in/sandy-farrell-ba3a5923",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "620f1f4c640f0a000118be9f",
+      "linkedin_url": "http://www.linkedin.com/in/steve-hadley-4b897320",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "55703d607369643eeebd2300",
+      "linkedin_url": "http://www.linkedin.com/in/jim-wobbles-09414037",
+      "email": "jwobbles@natfiresafety.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "687a4e5476096d0001a89d81",
+      "linkedin_url": "http://www.linkedin.com/in/mike-myers-308010186",
+      "email": "mikemyers@abacusplumbing.net",
+      "email_status": "verified"
+    },
+    {
+      "id": "60bbfb71bcfc510001ba1938",
+      "linkedin_url": "http://www.linkedin.com/in/carter-gregory-04ab58173",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "6257f9e5a36d340001a53105",
+      "linkedin_url": "http://www.linkedin.com/in/bekhruz-nagzibekov-74a38620a",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "57e02e35a6da985efc4b06a5",
+      "linkedin_url": "http://www.linkedin.com/in/christopher-donnee-589954b8",
+      "email": "cdonnee@bakerhomeexteriors.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "60b7830f44e1dd0001e0e5dd",
+      "linkedin_url": "http://www.linkedin.com/in/scott-seifert-694486100",
+      "email": "ssseifert@smithereen.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "6744e49ecd6e590001c8b5a4",
+      "linkedin_url": "http://www.linkedin.com/in/peterjamesrubino",
+      "email": "peter@sustainablepest.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5f498bc9b2162b0001bc555d",
+      "linkedin_url": "http://www.linkedin.com/in/austin-shaffer-b6464159",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "66f5b03b1110dc0001aa1f6b",
+      "linkedin_url": "http://www.linkedin.com/in/steve-o-meara-aa4108231",
+      "email": "someara@premier-roofing.com",
+      "email_status": "extrapolated"
+    },
+    {
+      "id": "66fa80cf38c6fc0001fd9691",
+      "linkedin_url": "http://www.linkedin.com/in/george-greer-601427196",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "57d4da7ca6da98536edf75f0",
+      "linkedin_url": "http://www.linkedin.com/in/chris-stillion-897060273",
+      "email": "cstillion@berrettpestcontrol.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "655327be2a0fc50001e65366",
+      "linkedin_url": "http://www.linkedin.com/in/joshua-powell-usu",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "5e746453aac3e00001fe94f7",
+      "linkedin_url": "http://www.linkedin.com/in/dominic-swingle-41469561",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "67000fee51522f00019f489a",
+      "linkedin_url": "http://www.linkedin.com/in/lavonne-rempel-dideon-1779a17",
+      "email": "lavonne@aspire-ps.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "60a5296b9473d600010fa987",
+      "linkedin_url": "http://www.linkedin.com/in/isaac-dixon-629353203",
+      "email": "isaacdixon@thebugguard.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5e991a4ea30ec2008c44b28d",
+      "linkedin_url": "http://www.linkedin.com/in/nicholas-steele-493574197",
+      "email": "nicksteele@completeroofing.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5f85e9ccfd6e9d0001d7833b",
+      "linkedin_url": "http://www.linkedin.com/in/chelsea-stone-tampa",
+      "email": "chelsea.stone@yedla.net",
+      "email_status": "verified"
+    },
+    {
+      "id": "54a2f2777468693825c21349",
+      "linkedin_url": "http://www.linkedin.com/in/diffenderferj",
+      "email": "james@theexteriorcompany.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "60c1dc0be598fb00012c83d5",
+      "linkedin_url": "http://www.linkedin.com/in/scott-noakes-9889721b3",
+      "email": "snoakes@efpstl.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "6641bb3a5fd2c4000167b8d2",
+      "linkedin_url": "http://www.linkedin.com/in/cooper-mills-233789306",
+      "email": "comills@moxiepestcontrol.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "54ec34077468694311ec1965",
+      "linkedin_url": "http://www.linkedin.com/in/jason-beck-24000421",
+      "email": "jason@fwspllc.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "54a732277468696b7f86fe1d",
+      "linkedin_url": "http://www.linkedin.com/in/rodney-turner-b7644648",
+      "email": "rodney.turner@usafp.us",
+      "email_status": "verified"
+    },
+    {
+      "id": "64104d6697caf60001de0a43",
+      "linkedin_url": "http://www.linkedin.com/in/blythe-hirst-35533123a",
+      "email": "blytheh@cfireinc.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "67161cfff097390001db0571",
+      "linkedin_url": "http://www.linkedin.com/in/steve-rothel-4748a7339",
+      "email": "steve@rightmarkroofing.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "66f59b1c70d98900012b9d73",
+      "linkedin_url": "http://www.linkedin.com/in/shawn-milliken-a87b635",
+      "email": "shawnm@roofingbycurry.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "66fb692d4b826200011245ca",
+      "linkedin_url": "http://www.linkedin.com/in/luke-demarcus-2a1a0611a",
+      "email": "luke.demarcus@homecarepulse.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "652a3932c693f700018679f0",
+      "linkedin_url": "http://www.linkedin.com/in/shawn-coleman-ab9b23143",
+      "email": "scoleman@deweypest.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "66f513d86b268f0001df12b5",
+      "linkedin_url": "http://www.linkedin.com/in/madison-plemmons-827364216",
+      "email": "madison@yourlakeroofer.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5c6471dbf6512544cc92e790",
+      "linkedin_url": "http://www.linkedin.com/in/todd-p-stubbs-2605118b",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "57e0ee9aa6da987dc46af1d4",
+      "linkedin_url": "http://www.linkedin.com/in/phillip-atkins-18b3759b",
+      "email": "phillip.atkins@cookspest.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "66f6ecc457022d0001279788",
+      "linkedin_url": "http://www.linkedin.com/in/christopher-helton-95a16325",
+      "email": "chris.helton@gibsonpest.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "54a569527468692fa21a7995",
+      "linkedin_url": "http://www.linkedin.com/in/jeff-stamps-53701612",
+      "email": "jeffstamps@leesair.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "674b387c102ced000105be03",
+      "linkedin_url": "http://www.linkedin.com/in/tennyson-pay-0599ba261",
+      "email": "tennyson.pay@logicalposition.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "667410483119e30001ad3589",
+      "linkedin_url": "http://www.linkedin.com/in/scott-haff-04b9b884",
+      "email": null,
+      "email_status": "unavailable"
+    },
+    {
+      "id": "5c59613f80f93e35edf4f111",
+      "linkedin_url": "http://www.linkedin.com/in/charlie-conklin-17251312",
+      "email": "cconklin@sentryheating.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5fc5293a1cb8e60001a6c59e",
+      "linkedin_url": "http://www.linkedin.com/in/wiley-moss-65a367b2",
+      "email": "white@enterpriseroofing.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "6873f3c3fe047f0001573cde",
+      "linkedin_url": "http://www.linkedin.com/in/justin-koen",
+      "email": "justin@sextonlandscapes.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5f5aaf3081864500016024ad",
+      "linkedin_url": "http://www.linkedin.com/in/mark-hendricks-092373bb",
+      "email": "mark@generalpest.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "5b30c50fa6da98ebf6944e1c",
+      "linkedin_url": "http://www.linkedin.com/in/matthew-geyer-99679b12b",
+      "email": "matthew.geyer@turnpointservices.com",
+      "email_status": "extrapolated"
+    },
+    {
+      "id": "66f8f4bb7f4d33000107d402",
+      "linkedin_url": "http://www.linkedin.com/in/nichsheldon",
+      "email": "nich.sheldon@valorroof.com",
+      "email_status": "verified"
+    },
+    {
+      "id": "64807b2036b96500011c2465",
+      "linkedin_url": "http://www.linkedin.com/in/bryn-nelson-4b644a268",
+      "email": "bryn.nelson@avayda.ca",
+      "email_status": "verified"
+    },
+    {
+      "id": "60dae2ddf766030001e6ce23",
+      "linkedin_url": "http://www.linkedin.com/in/ryan-sharrott-b15b4b1ab",
+      "email": "ryan@ryancoolair.com",
+      "email_status": "verified"
+    }
+  ]
+}

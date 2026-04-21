@@ -15,11 +15,15 @@ function flagValue(name: string): string | undefined {
 
 async function main(): Promise<void> {
   if (hasFlag('help')) {
-    console.log('Usage: apollo-plan [--limit N]');
+    console.log('Usage: apollo-plan [--limit N] [--list-id N]');
     console.log('');
     console.log('Builds an enrichment plan: filters master contacts through all');
     console.log('safeguards (3 gates + 2 budget caps), batches eligible contacts');
     console.log('into groups of 10, and writes the plan to data/apollo-plans/.');
+    console.log('');
+    console.log('--limit N     Cap number of contacts (for testing / small runs)');
+    console.log('--list-id N   Only enrich contacts in this GojiBerry list (e.g.');
+    console.log('              14507 for SalesEdge). Omit to consider all master.');
     console.log('');
     console.log('Output: path to the plan JSON file (on stdout\'s last line).');
     console.log('Also prints human-readable summary to stderr.');
@@ -33,6 +37,7 @@ async function main(): Promise<void> {
   const runBudget = Number(process.env.APOLLO_RUN_BUDGET ?? '50');
   const totalBudget = Number(process.env.APOLLO_TOTAL_BUDGET ?? '500');
   const limit = flagValue('limit') ? Number(flagValue('limit')) : undefined;
+  const listId = flagValue('list-id') ? Number(flagValue('list-id')) : undefined;
 
   const plan = await planEnrichment({
     masterFilePath,
@@ -40,6 +45,7 @@ async function main(): Promise<void> {
     runBudget,
     totalBudget,
     limit,
+    listId,
   });
 
   const plansDir = path.join(process.cwd(), 'data', 'apollo-plans');
