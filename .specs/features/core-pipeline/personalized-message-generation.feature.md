@@ -29,7 +29,8 @@ The founder wants messages that sound like they actually read the person's profi
 |----------|----------|-------------|
 | `GOJIBERRY_API_KEY` | Yes | Bearer token for GojiBerry API (used by API client) |
 | `ANTHROPIC_API_KEY` | Yes | API key for Anthropic (used for message generation via Claude) |
-| `ICP_DESCRIPTION` | Yes | Plain-English ideal customer description — used to frame the value prop in messages |
+| `ICP_DESCRIPTION` | Yes | Plain-English description of the **target buyer** (who the message is going to) |
+| `VALUE_PROPOSITION` | Yes | Plain-English description of **what you sell** (1-3 sentences). Anchors every message. If missing, throws ConfigError — prevents LLM product-name hallucinations |
 | `MIN_INTENT_SCORE` | No | Minimum score to consider a lead "warm" and eligible for messaging (default: 50) |
 | `MESSAGE_BATCH_SIZE` | No | Max leads to generate messages for per run (default: 25) |
 | `MESSAGE_TONE` | No | Tone guidance for messages: "casual", "professional", "direct" (default: "casual") |
@@ -60,6 +61,22 @@ Given `ICP_DESCRIPTION` is empty or not set in `.env.local`
 When the message generation automation runs
 Then it throws a `ConfigError` with message: "Missing ICP_DESCRIPTION in .env.local — describe your ideal customer first"
 And no messages are generated
+
+### Scenario: Reject run when VALUE_PROPOSITION is missing
+Given `VALUE_PROPOSITION` is empty or not set in `.env.local`
+When the message generation automation runs
+Then it throws a `ConfigError` mentioning `VALUE_PROPOSITION` and "so the LLM does not invent one"
+And no messages are generated
+And no GojiBerry API calls are made
+**Why**: an earlier version of this feature had no VALUE_PROPOSITION slot in the prompt. The LLM, given only ICP + lead info, invented product names to pitch (e.g. "GojiBerry" — the automation platform, not what was being sold). This gate prevents recurrence.
+
+### Scenario: Prompt anchors the LLM to the configured value proposition
+Given `VALUE_PROPOSITION` = "SalesEdge runs done-for-you outbound sales ops for mid-market trades companies"
+When `buildMessagePrompt` is invoked
+Then the prompt contains the value proposition verbatim
+And the prompt contains the ICP description
+And the prompt contains a "Your Offer" label distinguishing the offer from the target
+And the prompt explicitly forbids inventing or naming other products/platforms/tools
 
 ### Scenario: Generate a message that references real buying signals
 Given a lead named "Sarah Chen" at "FinPay" with jobTitle "CEO"

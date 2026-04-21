@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateMessages } from '../../src/automations/message-generation.js';
+import { generateMessages, buildMessagePrompt } from '../../src/automations/message-generation.js';
 import { ConfigError, AuthError } from '../../src/api/errors.js';
 import type { Lead, PaginatedLeads, UpdateLeadInput } from '../../src/api/types.js';
 import type { MessageGeneratorFn } from '../../src/automations/types.js';
@@ -114,11 +114,82 @@ describe('Scenario: Reject run when ICP description is missing', () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Scenario: Reject run when VALUE_PROPOSITION is missing
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('Scenario: Reject run when VALUE_PROPOSITION is missing', () => {
+  const ICP = 'Series A fintech founders';
+  beforeEach(() => {
+    delete process.env.VALUE_PROPOSITION;
+  });
+
+  it('throws ConfigError when VALUE_PROPOSITION is not set', async () => {
+    await expect(generateMessages({ icpDescription: ICP })).rejects.toThrow(ConfigError);
+  });
+
+  it('ConfigError message instructs founder to set VALUE_PROPOSITION', async () => {
+    await expect(generateMessages({ icpDescription: ICP })).rejects.toThrow(
+      /Missing VALUE_PROPOSITION.+so the LLM does not invent one/,
+    );
+  });
+
+  it('throws ConfigError when VALUE_PROPOSITION is empty string', async () => {
+    process.env.VALUE_PROPOSITION = '';
+    await expect(generateMessages({ icpDescription: ICP })).rejects.toThrow(ConfigError);
+    delete process.env.VALUE_PROPOSITION;
+  });
+
+  it('does not hit the GojiBerry API when VALUE_PROPOSITION is missing', async () => {
+    const client = makeMockClient();
+    await expect(
+      generateMessages({ icpDescription: ICP, _client: client }),
+    ).rejects.toThrow(ConfigError);
+    expect(client.searchLeads).not.toHaveBeenCalled();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Scenario: Prompt includes value prop and forbids inventing other products
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('Scenario: Prompt anchors the LLM to the configured value proposition', () => {
+  const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'SalesEdge runs done-for-you outbound sales ops for mid-market trades companies';
+
+  it('includes the value proposition verbatim in the prompt', () => {
+    const lead = makeLead();
+    const prompt = buildMessagePrompt(lead, ICP, VALUE_PROP, { tone: 'casual', maxLength: 300 });
+    expect(prompt).toContain(VALUE_PROP);
+  });
+
+  it('includes the ICP description in the prompt', () => {
+    const lead = makeLead();
+    const prompt = buildMessagePrompt(lead, ICP, VALUE_PROP, { tone: 'casual', maxLength: 300 });
+    expect(prompt).toContain(ICP);
+  });
+
+  it('explicitly forbids inventing products/platforms in the prompt', () => {
+    const lead = makeLead();
+    const prompt = buildMessagePrompt(lead, ICP, VALUE_PROP, { tone: 'casual', maxLength: 300 });
+    // Prevents the GojiBerry hallucination we saw in production
+    expect(prompt).toMatch(/do not invent|do NOT invent/i);
+    expect(prompt).toMatch(/product|platform|tool/i);
+  });
+
+  it('labels the value prop so the LLM understands it is the offer, not the target', () => {
+    const lead = makeLead();
+    const prompt = buildMessagePrompt(lead, ICP, VALUE_PROP, { tone: 'casual', maxLength: 300 });
+    expect(prompt).toMatch(/your offer/i);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Scenario: Generate personalized messages for warm leads
 // ──────────────────────────────────────────────────────────────────────────────
 
 describe('Scenario: Generate personalized messages for warm leads', () => {
   const ICP = 'Series A SaaS founders in fintech who are actively hiring';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('fetches warm leads by scoreFrom and generates messages', async () => {
     const leads = [makeLead()];
@@ -127,12 +198,12 @@ describe('Scenario: Generate personalized messages for warm leads', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(client.searchLeads).toHaveBeenCalledWith(
       expect.objectContaining({ scoreFrom: expect.any(Number) }),
     );
-    expect(gen).toHaveBeenCalledWith(leads[0], ICP, expect.objectContaining({ tone: expect.any(String), maxLength: expect.any(Number) }));
+    expect(gen).toHaveBeenCalledWith(leads[0], ICP, VALUE_PROP, expect.objectContaining({ tone: expect.any(String), maxLength: expect.any(Number) }));
   });
 
   it('stores message via updateLead with personalizedMessages', async () => {
@@ -143,7 +214,7 @@ describe('Scenario: Generate personalized messages for warm leads', () => {
     const message = 'Hey Sarah, your Series A timing is perfect for what we do.';
     const gen = vi.fn().mockResolvedValue(message) as MessageGeneratorFn;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
@@ -159,7 +230,7 @@ describe('Scenario: Generate personalized messages for warm leads', () => {
     const message = 'Hey Sarah, saw your raise — we can help.';
     const gen = vi.fn().mockResolvedValue(message) as MessageGeneratorFn;
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
     expect(result.generated[0].lead).toBe(lead);
@@ -173,6 +244,7 @@ describe('Scenario: Generate personalized messages for warm leads', () => {
 
 describe('Scenario: Identify leads that need messages', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('selects leads where fitScore >= MIN_INTENT_SCORE', async () => {
     const warmLead = makeLead({ fitScore: 55 });
@@ -181,7 +253,7 @@ describe('Scenario: Identify leads that need messages', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
   });
@@ -194,7 +266,7 @@ describe('Scenario: Identify leads that need messages', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
     expect(result.generated[0].lead.id).toBe('lead-2');
@@ -210,7 +282,7 @@ describe('Scenario: Identify leads that need messages', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
     expect(result.generated[0].lead.id).toBe('lead-2');
@@ -223,7 +295,7 @@ describe('Scenario: Identify leads that need messages', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(0);
   });
@@ -243,7 +315,7 @@ describe('Scenario: Identify leads that need messages', () => {
       return 'test message';
     });
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(processOrder).toEqual([90, 75, 60]);
   });
@@ -255,6 +327,7 @@ describe('Scenario: Identify leads that need messages', () => {
 
 describe('Scenario: Respect message batch size', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('processes only MESSAGE_BATCH_SIZE leads per run', async () => {
     const leads = makeWarmLeads(40);
@@ -264,7 +337,7 @@ describe('Scenario: Respect message batch size', () => {
     const gen = mockGenerator();
 
     const result = await generateMessages({
-      icpDescription: ICP,
+      icpDescription: ICP, valueProposition: VALUE_PROP,
       batchSize: 15,
       _client: client,
       _messageGenerator: gen,
@@ -281,7 +354,7 @@ describe('Scenario: Respect message batch size', () => {
     const gen = mockGenerator();
 
     const result = await generateMessages({
-      icpDescription: ICP,
+      icpDescription: ICP, valueProposition: VALUE_PROP,
       batchSize: 15,
       _client: client,
       _messageGenerator: gen,
@@ -300,7 +373,7 @@ describe('Scenario: Respect message batch size', () => {
     const gen = mockGenerator();
 
     const result = await generateMessages({
-      icpDescription: ICP,
+      icpDescription: ICP, valueProposition: VALUE_PROP,
       batchSize: 15,
       _client: client,
       _messageGenerator: gen,
@@ -317,7 +390,7 @@ describe('Scenario: Respect message batch size', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(10);
     delete process.env.MESSAGE_BATCH_SIZE;
@@ -330,6 +403,7 @@ describe('Scenario: Respect message batch size', () => {
 
 describe('Scenario: Use default batch size when not configured', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('defaults to batch size of 25', async () => {
     delete process.env.MESSAGE_BATCH_SIZE;
@@ -339,7 +413,7 @@ describe('Scenario: Use default batch size when not configured', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(25);
     expect(result.remaining).toBe(5);
@@ -352,6 +426,7 @@ describe('Scenario: Use default batch size when not configured', () => {
 
 describe('Scenario: Respect MESSAGE_MAX_LENGTH for LinkedIn connection requests', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('passes maxLength to the message generator', async () => {
     process.env.MESSAGE_MAX_LENGTH = '300';
@@ -361,11 +436,12 @@ describe('Scenario: Respect MESSAGE_MAX_LENGTH for LinkedIn connection requests'
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(gen).toHaveBeenCalledWith(
       lead,
       ICP,
+      VALUE_PROP,
       expect.objectContaining({ maxLength: 300 }),
     );
     delete process.env.MESSAGE_MAX_LENGTH;
@@ -378,9 +454,9 @@ describe('Scenario: Respect MESSAGE_MAX_LENGTH for LinkedIn connection requests'
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, maxLength: 150, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, maxLength: 150, _client: client, _messageGenerator: gen });
 
-    expect(gen).toHaveBeenCalledWith(lead, ICP, expect.objectContaining({ maxLength: 150 }));
+    expect(gen).toHaveBeenCalledWith(lead, ICP, VALUE_PROP, expect.objectContaining({ maxLength: 150 }));
   });
 });
 
@@ -390,6 +466,7 @@ describe('Scenario: Respect MESSAGE_MAX_LENGTH for LinkedIn connection requests'
 
 describe('Scenario: Use default MESSAGE_MAX_LENGTH when not configured', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('defaults to 300 characters max length', async () => {
     delete process.env.MESSAGE_MAX_LENGTH;
@@ -399,9 +476,9 @@ describe('Scenario: Use default MESSAGE_MAX_LENGTH when not configured', () => {
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
-    expect(gen).toHaveBeenCalledWith(lead, ICP, expect.objectContaining({ maxLength: 300 }));
+    expect(gen).toHaveBeenCalledWith(lead, ICP, VALUE_PROP, expect.objectContaining({ maxLength: 300 }));
   });
 });
 
@@ -411,6 +488,7 @@ describe('Scenario: Use default MESSAGE_MAX_LENGTH when not configured', () => {
 
 describe('Scenario: Respect message tone setting', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('passes tone to the message generator', async () => {
     process.env.MESSAGE_TONE = 'professional';
@@ -420,9 +498,9 @@ describe('Scenario: Respect message tone setting', () => {
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
-    expect(gen).toHaveBeenCalledWith(lead, ICP, expect.objectContaining({ tone: 'professional' }));
+    expect(gen).toHaveBeenCalledWith(lead, ICP, VALUE_PROP, expect.objectContaining({ tone: 'professional' }));
     delete process.env.MESSAGE_TONE;
   });
 
@@ -433,9 +511,9 @@ describe('Scenario: Respect message tone setting', () => {
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, tone: 'direct', _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, tone: 'direct', _client: client, _messageGenerator: gen });
 
-    expect(gen).toHaveBeenCalledWith(lead, ICP, expect.objectContaining({ tone: 'direct' }));
+    expect(gen).toHaveBeenCalledWith(lead, ICP, VALUE_PROP, expect.objectContaining({ tone: 'direct' }));
   });
 });
 
@@ -445,6 +523,7 @@ describe('Scenario: Respect message tone setting', () => {
 
 describe('Scenario: Use default casual tone when MESSAGE_TONE is not configured', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('defaults to casual tone', async () => {
     delete process.env.MESSAGE_TONE;
@@ -454,9 +533,9 @@ describe('Scenario: Use default casual tone when MESSAGE_TONE is not configured'
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
-    expect(gen).toHaveBeenCalledWith(lead, ICP, expect.objectContaining({ tone: 'casual' }));
+    expect(gen).toHaveBeenCalledWith(lead, ICP, VALUE_PROP, expect.objectContaining({ tone: 'casual' }));
   });
 });
 
@@ -466,6 +545,7 @@ describe('Scenario: Use default casual tone when MESSAGE_TONE is not configured'
 
 describe('Scenario: Handle lead with minimal intent signals', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('generates message for lead with only one intentSignal', async () => {
     const lead = makeLead({ fitScore: 55, intentSignals: ['Active on LinkedIn'], profileBaseline: 'ICP Score: 55/100' });
@@ -474,7 +554,7 @@ describe('Scenario: Handle lead with minimal intent signals', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
   });
@@ -487,7 +567,7 @@ describe('Scenario: Handle lead with minimal intent signals', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(consoleSpy).toHaveBeenCalledWith(
       'Low signal: Sam Reed — message generated from limited data',
@@ -502,9 +582,9 @@ describe('Scenario: Handle lead with minimal intent signals', () => {
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
-    expect(gen).toHaveBeenCalledWith(expect.objectContaining({ intentSignals: ['Active on LinkedIn'] }), ICP, expect.any(Object));
+    expect(gen).toHaveBeenCalledWith(expect.objectContaining({ intentSignals: ['Active on LinkedIn'] }), ICP, VALUE_PROP, expect.any(Object));
   });
 });
 
@@ -514,6 +594,7 @@ describe('Scenario: Handle lead with minimal intent signals', () => {
 
 describe('Scenario: Handle GojiBerry API errors during message storage', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('logs failure and continues when updateLead errors for one lead', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error');
@@ -532,7 +613,7 @@ describe('Scenario: Handle GojiBerry API errors during message storage', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(2);
     expect(result.failed).toHaveLength(1);
@@ -559,7 +640,7 @@ describe('Scenario: Handle GojiBerry API errors during message storage', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.failed).toHaveLength(1);
     const totalsLine = consoleSpy.mock.calls.flat().find(
@@ -577,6 +658,7 @@ describe('Scenario: Handle GojiBerry API errors during message storage', () => {
 
 describe('Scenario: Handle authentication failure', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('throws AuthError when searchLeads returns auth failure', async () => {
     const client = makeMockClient({
@@ -585,7 +667,7 @@ describe('Scenario: Handle authentication failure', () => {
     const gen = mockGenerator();
 
     await expect(
-      generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen }),
+      generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen }),
     ).rejects.toThrow(AuthError);
   });
 
@@ -596,7 +678,7 @@ describe('Scenario: Handle authentication failure', () => {
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
     await expect(
-      generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen }),
+      generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen }),
     ).rejects.toThrow(AuthError);
 
     expect(gen).not.toHaveBeenCalled();
@@ -612,7 +694,7 @@ describe('Scenario: Handle authentication failure', () => {
     const gen = mockGenerator();
 
     await expect(
-      generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen }),
+      generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen }),
     ).rejects.toThrow(AuthError);
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -628,6 +710,7 @@ describe('Scenario: Handle authentication failure', () => {
 
 describe('Scenario: Handle Anthropic API failure during generation', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('logs failure and continues when message generator throws for one lead', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error');
@@ -646,7 +729,7 @@ describe('Scenario: Handle Anthropic API failure during generation', () => {
       searchLeads: async () => paginatedWith(leads),
     });
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(2);
     expect(result.failed).toHaveLength(1);
@@ -664,7 +747,7 @@ describe('Scenario: Handle Anthropic API failure during generation', () => {
       searchLeads: async () => paginatedWith([lead]),
     });
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.failed).toHaveLength(1);
     expect(result.failed[0].lead.firstName).toBe('Bob');
@@ -678,6 +761,7 @@ describe('Scenario: Handle Anthropic API failure during generation', () => {
 
 describe('Scenario: Output message generation summary', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('outputs totals line after successful batch', async () => {
     const consoleSpy = vi.spyOn(console, 'log');
@@ -687,7 +771,7 @@ describe('Scenario: Output message generation summary', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     const output = consoleSpy.mock.calls.flat().join('\n');
     expect(output).toContain('3 messages generated — ready for review in GojiBerry');
@@ -702,7 +786,7 @@ describe('Scenario: Output message generation summary', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, batchSize: 15, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, batchSize: 15, _client: client, _messageGenerator: gen });
 
     const output = consoleSpy.mock.calls.flat().join('\n');
     expect(output).toContain('15 messages generated (25 remaining — run again to continue)');
@@ -718,7 +802,7 @@ describe('Scenario: Output message generation summary', () => {
     const message = 'Hey Sarah, saw you just raised your Series A. We help fintech founders scale outbound from zero.';
     const gen = vi.fn().mockResolvedValue(message) as MessageGeneratorFn;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     const output = consoleSpy.mock.calls.flat().join('\n');
     expect(output).toContain('Sarah Chen');
@@ -735,7 +819,7 @@ describe('Scenario: Output message generation summary', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     // No summary table or totals when nothing to do
     const output = consoleSpy.mock.calls.flat().join('\n');
@@ -750,6 +834,7 @@ describe('Scenario: Output message generation summary', () => {
 
 describe('Scenario: Generate messages for a specific lead by ID', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('fetches lead via getLead when leadId is provided', async () => {
     const lead = makeLead({ id: 'specific-lead' });
@@ -758,7 +843,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, leadId: 'specific-lead', _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, leadId: 'specific-lead', _client: client, _messageGenerator: gen });
 
     expect(client.getLead).toHaveBeenCalledWith('specific-lead');
     expect(client.searchLeads).not.toHaveBeenCalled();
@@ -772,7 +857,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
     const message = 'Hey Sarah, congrats on the Series A!';
     const gen = vi.fn().mockResolvedValue(message) as MessageGeneratorFn;
 
-    const result = await generateMessages({ icpDescription: ICP, leadId: 'specific-lead', _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, leadId: 'specific-lead', _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
     expect(client.updateLead).toHaveBeenCalledWith(
@@ -790,7 +875,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
     const message = 'Hey Sarah, saw your Series A. Perfect timing for what we do.';
     const gen = vi.fn().mockResolvedValue(message) as MessageGeneratorFn;
 
-    await generateMessages({ icpDescription: ICP, leadId: 'specific-lead', _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, leadId: 'specific-lead', _client: client, _messageGenerator: gen });
 
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining('Sarah Chen — message ready:'),
@@ -806,7 +891,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
     await expect(
-      generateMessages({ icpDescription: ICP, leadId: 'lead-1', _client: client, _messageGenerator: gen }),
+      generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, leadId: 'lead-1', _client: client, _messageGenerator: gen }),
     ).rejects.toThrow();
 
     expect(gen).not.toHaveBeenCalled();
@@ -820,7 +905,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
     await expect(
-      generateMessages({ icpDescription: ICP, leadId: 'lead-1', minIntentScore: 50, _client: client, _messageGenerator: gen }),
+      generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, leadId: 'lead-1', minIntentScore: 50, _client: client, _messageGenerator: gen }),
     ).rejects.toThrow();
 
     expect(gen).not.toHaveBeenCalled();
@@ -833,6 +918,7 @@ describe('Scenario: Generate messages for a specific lead by ID', () => {
 
 describe('Scenario: Regenerate messages (force refresh)', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('regenerates messages for leads that already have personalizedMessages', async () => {
     const lead = makeLead({ personalizedMessages: [{ content: 'old message', stepNumber: 1 }] });
@@ -841,7 +927,7 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, forceRegenerate: true, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, forceRegenerate: true, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(1);
     expect(result.skipped).toHaveLength(0);
@@ -855,7 +941,7 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
     const newMessage = 'brand new personalized message';
     const gen = vi.fn().mockResolvedValue(newMessage) as MessageGeneratorFn;
 
-    await generateMessages({ icpDescription: ICP, forceRegenerate: true, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, forceRegenerate: true, _client: client, _messageGenerator: gen });
 
     expect(client.updateLead).toHaveBeenCalledWith(
       lead.id,
@@ -871,7 +957,7 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, forceRegenerate: true, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, forceRegenerate: true, _client: client, _messageGenerator: gen });
 
     expect(consoleSpy).toHaveBeenCalledWith('Regenerated: Sarah Chen');
     consoleSpy.mockRestore();
@@ -884,6 +970,7 @@ describe('Scenario: Regenerate messages (force refresh)', () => {
 
 describe('Scenario: Skip leads below intent threshold', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('does not fetch cold leads when scoreFrom is applied', async () => {
     const client = makeMockClient({
@@ -891,7 +978,7 @@ describe('Scenario: Skip leads below intent threshold', () => {
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    const result = await generateMessages({ icpDescription: ICP, minIntentScore: 50, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, minIntentScore: 50, _client: client, _messageGenerator: gen });
 
     expect(client.searchLeads).toHaveBeenCalledWith(
       expect.objectContaining({ scoreFrom: 50 }),
@@ -907,7 +994,7 @@ describe('Scenario: Skip leads below intent threshold', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(client.searchLeads).toHaveBeenCalledWith(
       expect.objectContaining({ scoreFrom: 70 }),
@@ -922,7 +1009,7 @@ describe('Scenario: Skip leads below intent threshold', () => {
     });
     const gen = mockGenerator();
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(client.searchLeads).toHaveBeenCalledWith(
       expect.objectContaining({ scoreFrom: 50 }),
@@ -936,6 +1023,7 @@ describe('Scenario: Skip leads below intent threshold', () => {
 
 describe('Scenario: Generate a message that references real buying signals', () => {
   const ICP = 'Series A SaaS founders in fintech who are actively hiring';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('passes lead with intentSignals to the generator', async () => {
     const lead = makeLead({
@@ -950,13 +1038,14 @@ describe('Scenario: Generate a message that references real buying signals', () 
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(gen).toHaveBeenCalledWith(
       expect.objectContaining({
         intentSignals: ['Recently raised Series A ($8M)', 'Hiring 3 SDRs', 'Posted about scaling outbound'],
       }),
       ICP,
+      VALUE_PROP,
       expect.any(Object),
     );
   });
@@ -973,11 +1062,12 @@ describe('Scenario: Generate a message that references real buying signals', () 
     });
     const gen = mockGenerator() as ReturnType<typeof vi.fn>;
 
-    await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(gen).toHaveBeenCalledWith(
       expect.objectContaining({ firstName: 'Sarah', lastName: 'Chen', company: 'FinPay', jobTitle: 'CEO' }),
       ICP,
+      VALUE_PROP,
       expect.any(Object),
     );
   });
@@ -989,6 +1079,7 @@ describe('Scenario: Generate a message that references real buying signals', () 
 
 describe('Scenario: Handle rate limits during batch messaging', () => {
   const ICP = 'Series A fintech founders';
+  const VALUE_PROP = 'We help fintech founders fill their outbound pipeline with qualified meetings in 30 days';
 
   it('processes all leads successfully (rate limiting handled by client)', async () => {
     const leads = makeWarmLeads(25);
@@ -997,7 +1088,7 @@ describe('Scenario: Handle rate limits during batch messaging', () => {
     });
     const gen = mockGenerator();
 
-    const result = await generateMessages({ icpDescription: ICP, _client: client, _messageGenerator: gen });
+    const result = await generateMessages({ icpDescription: ICP, valueProposition: VALUE_PROP, _client: client, _messageGenerator: gen });
 
     expect(result.generated).toHaveLength(25);
     expect(result.failed).toHaveLength(0);
