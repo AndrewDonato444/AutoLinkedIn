@@ -1,0 +1,57 @@
+{
+  "runId": "ec0b65f5-803d-477d-a474-d790ad107e81",
+  "batches": [
+    {
+      "batchIndex": 0,
+      "details": [
+        {
+          "id": "4893075",
+          "linkedin_url": "https://www.linkedin.com/in/luke-gaeta-636244375/",
+          "first_name": "Luke",
+          "last_name": "Gaeta",
+          "organization_name": "Pye-Barker Fire & Safety"
+        },
+        {
+          "id": "4893071",
+          "linkedin_url": "https://www.linkedin.com/in/derek-couture-5239a919/",
+          "first_name": "Derek",
+          "last_name": "Couture",
+          "organization_name": "Tecta America New England"
+        },
+        {
+          "id": "4724299",
+          "linkedin_url": "https://linkedin.com/in/addi-aloya",
+          "first_name": "Addi",
+          "last_name": "Aloya",
+          "organization_name": "Conditioned Air"
+        },
+        {
+          "id": "4893135",
+          "linkedin_url": "https://www.linkedin.com/in/jacobborg/",
+          "first_name": "Jacob",
+          "last_name": "Borg",
+          "organization_name": "PestCo Holdings"
+        },
+        {
+          "id": "4724265",
+          "linkedin_url": "https://linkedin.com/in/gene-judd-1a631291",
+          "first_name": "Gene",
+          "last_name": "Judd",
+          "organization_name": "Bone Dry Roofing"
+        }
+      ]
+    }
+  ],
+  "eligible": 223,
+  "projectedCredits": 5,
+  "creditsAlreadyUsed": 0,
+  "budgetRemaining": 1000,
+  "skippedByGate": {
+    "already-enriched": 0,
+    "no-profile-url": 0,
+    "missing-name-or-company": 0
+  },
+  "warnings": [],
+  "masterFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/contacts.jsonl",
+  "logFilePath": "/Users/andrewsrobotmachine/GojiBerry Auto/data/apollo-enrichment-log.jsonl"
+}
