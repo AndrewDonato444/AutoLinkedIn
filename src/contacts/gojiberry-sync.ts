@@ -1,10 +1,41 @@
 import { readMaster, writeMaster } from './master-store.js';
 import { NotFoundError } from '../api/errors.js';
 import type { Lead } from '../api/types.js';
-import type { MasterContact } from './types.js';
+import type { CampaignEvent, MasterContact } from './types.js';
 
 interface SyncClient {
   getLead(id: string): Promise<Lead>;
+}
+
+/**
+ * GojiBerry's `campaignStatus` comes back as an array of event objects:
+ *   [{ type, state, createdAt, stepNumber }, ...]
+ *
+ * It can also be null/missing (contact not in a campaign) or — in rare
+ * legacy data — a string. We normalize to a CampaignEvent[] always, dropping
+ * malformed entries. Extra fields on each event are discarded.
+ */
+export function normalizeCampaignStatus(raw: unknown): CampaignEvent[] {
+  if (!Array.isArray(raw)) return [];
+  const events: CampaignEvent[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    if (
+      typeof rec.type === 'string' &&
+      typeof rec.state === 'string' &&
+      typeof rec.createdAt === 'string' &&
+      typeof rec.stepNumber === 'number'
+    ) {
+      events.push({
+        type: rec.type,
+        state: rec.state,
+        createdAt: rec.createdAt,
+        stepNumber: rec.stepNumber,
+      });
+    }
+  }
+  return events;
 }
 
 export interface SyncOptions {
@@ -31,7 +62,7 @@ export async function syncGojiberryState(options: SyncOptions): Promise<SyncResu
       const fresh = (await options._client.getLead(String(contact.id))) as unknown as Record<string, unknown>;
       contact.gojiberryState = {
         listId: typeof fresh.listId === 'number' ? (fresh.listId as number) : null,
-        campaignStatus: (fresh.campaignStatus as string | null) ?? null,
+        campaignStatus: normalizeCampaignStatus(fresh.campaignStatus),
         readyForCampaign: fresh.readyForCampaign === true,
         bounced: fresh.bounced === true,
         unsubscribed: fresh.unsubscribed === true,

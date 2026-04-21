@@ -206,7 +206,7 @@ describe('Scenario: Re-running rebuild is idempotent', () => {
       apolloMatchConfidence: 0.88,
       gojiberryState: {
         listId: null,
-        campaignStatus: null,
+        campaignStatus: [],
         readyForCampaign: false,
         bounced: false,
         unsubscribed: false,
@@ -271,7 +271,7 @@ describe('Scenario: Rebuild with dry-run shows diff without writing', () => {
         apolloMatchConfidence: null,
         gojiberryState: {
           listId: null,
-          campaignStatus: null,
+          campaignStatus: [],
           readyForCampaign: false,
           bounced: false,
           unsubscribed: false,

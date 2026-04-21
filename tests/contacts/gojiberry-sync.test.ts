@@ -29,7 +29,7 @@ function makeMaster(overrides: Partial<MasterContact> = {}): MasterContact {
     apolloMatchConfidence: null,
     gojiberryState: {
       listId: null,
-      campaignStatus: null,
+      campaignStatus: [],
       readyForCampaign: false,
       bounced: false,
       unsubscribed: false,
@@ -73,6 +73,13 @@ afterEach(() => {
 describe('Scenario: Pulls engagement state into master', () => {
   it('updates bounced, unsubscribed, campaignStatus, listId, readyForCampaign from GojiBerry', async () => {
     writeMasterFile(masterFile, [makeMaster({ id: 4724299 })]);
+    // campaignStatus comes from GojiBerry as an array of event objects (observed
+    // in prod, e.g. invitation → message progression). Regression for the
+    // "[object Object]" bug where the sync stringified an object-valued field.
+    const campaignEvents = [
+      { type: 'invitation', state: 'accepted', createdAt: '2026-04-16T19:24:03.177Z', stepNumber: 0 },
+      { type: 'message', state: 'sent', createdAt: '2026-04-20T19:18:13.110Z', stepNumber: 1 },
+    ];
     const getLead = vi.fn().mockResolvedValue({
       id: '4724299',
       firstName: 'Jane',
@@ -80,7 +87,7 @@ describe('Scenario: Pulls engagement state into master', () => {
       profileUrl: 'https://linkedin.com/in/jane-doe',
       bounced: true,
       unsubscribed: false,
-      campaignStatus: 'active',
+      campaignStatus: campaignEvents,
       listId: 14507,
       readyForCampaign: true,
       updatedAt: '2026-04-20T10:00:00Z',
@@ -92,10 +99,46 @@ describe('Scenario: Pulls engagement state into master', () => {
     const [contact] = readMasterFile(masterFile);
     expect(contact.gojiberryState.bounced).toBe(true);
     expect(contact.gojiberryState.unsubscribed).toBe(false);
-    expect(contact.gojiberryState.campaignStatus).toBe('active');
+    expect(contact.gojiberryState.campaignStatus).toEqual(campaignEvents);
     expect(contact.gojiberryState.listId).toBe(14507);
     expect(contact.gojiberryState.readyForCampaign).toBe(true);
     expect(contact.gojiberryState.updatedAt).toBe('2026-04-20T10:00:00Z');
+  });
+
+  it('normalizes campaignStatus to empty array when null/missing/non-array', async () => {
+    writeMasterFile(masterFile, [makeMaster({ id: 1 })]);
+    const getLead = vi.fn().mockResolvedValue({
+      id: '1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      profileUrl: 'https://linkedin.com/in/jane-doe',
+      campaignStatus: null,
+      updatedAt: '2026-04-20T10:00:00Z',
+    } as unknown as Lead);
+    await syncGojiberryState({ masterFilePath: masterFile, _client: { getLead } });
+    const [contact] = readMasterFile(masterFile);
+    expect(contact.gojiberryState.campaignStatus).toEqual([]);
+  });
+
+  it('drops malformed event objects from campaignStatus array', async () => {
+    writeMasterFile(masterFile, [makeMaster({ id: 1 })]);
+    const getLead = vi.fn().mockResolvedValue({
+      id: '1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      profileUrl: 'https://linkedin.com/in/jane-doe',
+      campaignStatus: [
+        { type: 'invitation', state: 'sent', createdAt: '2026-04-20T00:00:00Z', stepNumber: 0 },
+        { type: 'broken' }, // missing state, createdAt, stepNumber
+        null,
+        'string-not-object',
+      ],
+      updatedAt: '2026-04-20T10:00:00Z',
+    } as unknown as Lead);
+    await syncGojiberryState({ masterFilePath: masterFile, _client: { getLead } });
+    const [contact] = readMasterFile(masterFile);
+    expect(contact.gojiberryState.campaignStatus).toHaveLength(1);
+    expect(contact.gojiberryState.campaignStatus[0].type).toBe('invitation');
   });
 
   it('refreshes masterUpdatedAt after sync', async () => {
