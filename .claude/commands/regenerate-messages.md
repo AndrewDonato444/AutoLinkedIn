@@ -37,10 +37,11 @@ Regenerate `personalizedMessages` for contacts in the master store using Claude-
 
 When generating messages, Claude MUST:
 
-- **Reference at least one specific buying signal** from `intentSignals` — not generic platitudes
-- **Reference `VALUE_PROPOSITION` verbatim or close to it** — this is the ONLY product/service you may mention
-- **NEVER invent product, platform, tool, or company names** — if VALUE_PROPOSITION doesn't fit the signal cleanly, keep the pitch generic rather than fabricating one. This prevents the "GojiBerry hallucination" bug.
-- **Sound like a real human wrote it** after actually reading the profile — no template phrases like "I noticed we're both in..." or "I came across your profile..."
+- **Reference at least one specific buying signal** from `intentSignals`, not generic platitudes
+- **Reference `VALUE_PROPOSITION` verbatim or close to it.** This is the ONLY product/service you may mention
+- **NEVER invent product, platform, tool, or company names.** If VALUE_PROPOSITION doesn't fit the signal cleanly, keep the pitch generic rather than fabricating one. This prevents the "GojiBerry hallucination" bug.
+- **NEVER use em dashes (—) or en dashes (–).** Real people typing on phones and laptops use commas, periods, or start a new sentence. Em dashes are the clearest LLM tell. Use commas or periods instead.
+- **Sound like a real human wrote it** after actually reading the profile. No template phrases like "I noticed we're both in..." or "I came across your profile..."
 - **Stay under 300 characters** (LinkedIn connection request limit)
 
 ## Safeguards (baked into the plan gate)

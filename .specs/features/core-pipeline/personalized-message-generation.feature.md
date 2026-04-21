@@ -78,6 +78,13 @@ And the prompt contains the ICP description
 And the prompt contains a "Your Offer" label distinguishing the offer from the target
 And the prompt explicitly forbids inventing or naming other products/platforms/tools
 
+### Scenario: Prompt forbids em dashes and en dashes
+Given the prompt generator is invoked
+When `buildMessagePrompt` is run
+Then the returned prompt mentions "em dash" (so the LLM can't rationalize the rule away)
+And the prompt includes the literal `—` character (so the instruction is unambiguous)
+**Why**: em dashes are the clearest style tell that a message was written by an LLM. Real people typing on phones or laptops use commas, periods, or start new sentences. Forbidding em/en dashes in the prompt keeps outbound messages sounding human.
+
 ### Scenario: Generate a message that references real buying signals
 Given a lead named "Sarah Chen" at "FinPay" with jobTitle "CEO"
 And intentSignals: ["Recently raised Series A ($8M)", "Hiring 3 SDRs", "Posted about scaling outbound"]
