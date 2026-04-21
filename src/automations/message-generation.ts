@@ -27,6 +27,7 @@ export interface GenerateMessagesOptions {
   batchSize?: number;
   minIntentScore?: number;
   icpDescription?: string;
+  valueProposition?: string;
   tone?: string;
   maxLength?: number;
   /** Test-only: inject mock message generator */
@@ -35,9 +36,10 @@ export interface GenerateMessagesOptions {
   _client?: MessageGenClient;
 }
 
-function buildMessagePrompt(
+export function buildMessagePrompt(
   lead: Lead,
   icpDescription: string,
+  valueProposition: string,
   options: { tone: string; maxLength: number },
 ): string {
   const signals = (lead.intentSignals ?? []).join('\n- ');
@@ -49,13 +51,18 @@ Company: ${lead.company ?? 'Unknown'}
 Buying Signals:
 - ${signals || 'No specific signals available'}
 
-ICP Context: ${icpDescription}
+ICP Context (who you want to reach): ${icpDescription}
+
+Your Offer (the ONLY product/service you may reference — do not invent others):
+${valueProposition}
+
 Tone: ${options.tone}
 Max length: ${options.maxLength} characters
 
 Requirements:
 - Reference at least one specific buying signal (not generic platitudes)
-- Connect the signal to a relevant value proposition
+- Connect the signal to YOUR OFFER above — do NOT invent or name any other product, platform, tool, or company
+- If the fit between the signal and your offer is weak, keep the pitch generic rather than fabricating a product
 - Sound like a real human wrote this after actually reading their profile
 - Do NOT use: "I noticed we're both in [industry]", "I came across your profile", or other template phrases
 - Keep it under ${options.maxLength} characters (hard limit — do not exceed)
@@ -72,6 +79,7 @@ function enforceMaxLength(message: string, maxLength: number): string {
 export async function defaultMessageGenerator(
   lead: Lead,
   icpDescription: string,
+  valueProposition: string,
   options: { tone: string; maxLength: number },
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -82,7 +90,7 @@ export async function defaultMessageGenerator(
   }
 
   const anthropic = new Anthropic({ apiKey });
-  const prompt = buildMessagePrompt(lead, icpDescription, options);
+  const prompt = buildMessagePrompt(lead, icpDescription, valueProposition, options);
 
   const response = await anthropic.messages.create({
     model: ANTHROPIC_MODEL,
@@ -148,6 +156,14 @@ export async function generateMessages(
     );
   }
 
+  const valueProposition = options.valueProposition ?? process.env.VALUE_PROPOSITION;
+
+  if (!valueProposition || valueProposition.trim() === '') {
+    throw new ConfigError(
+      'Missing VALUE_PROPOSITION in .env.local — describe what your product/service does so the LLM does not invent one',
+    );
+  }
+
   const minIntentScore = resolvePositiveNumber(
     options.minIntentScore,
     'MIN_INTENT_SCORE',
@@ -186,7 +202,7 @@ export async function generateMessages(
       );
     }
 
-    const message = await messageGenerator(lead, icpDescription, { tone, maxLength });
+    const message = await messageGenerator(lead, icpDescription, valueProposition, { tone, maxLength });
     await client.updateLead(lead.id, { personalizedMessages: [{ content: message, stepNumber: 1 }] } as any);
     result.generated.push({ lead, message });
 
@@ -225,7 +241,7 @@ export async function generateMessages(
     // Generate message
     let message: string;
     try {
-      message = await messageGenerator(lead, icpDescription, { tone, maxLength });
+      message = await messageGenerator(lead, icpDescription, valueProposition, { tone, maxLength });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error(
