@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { discoverLeads } from '../../src/automations/icp-lead-discovery.js';
 import { ConfigError, AuthError } from '../../src/api/errors.js';
+import { normalizeLinkedInUrl as normalize } from '../../src/utils/linkedin-url.js';
 import type { DiscoveredLead, DiscoveryResult } from '../../src/automations/types.js';
 import type { PaginatedLeads, Lead, CreateLeadInput } from '../../src/api/types.js';
 
@@ -258,24 +259,15 @@ describe('Scenario: Skip duplicate leads already in GojiBerry', () => {
     vi.restoreAllMocks();
   });
 
-  it('skips lead when profileUrl already exists in GojiBerry', async () => {
+  it('skips lead when profileUrl already exists in master', async () => {
     const lead = makeLead({ firstName: 'Jane', lastName: 'Doe', profileUrl: 'https://linkedin.com/in/jane-doe' });
-
-    const existingLead: Lead = {
-      id: 'existing-123',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      profileUrl: 'https://linkedin.com/in/jane-doe',
-    };
-
-    const client = makeMockClient({
-      searchLeads: vi.fn().mockResolvedValue(paginatedWith([existingLead])),
-    });
+    const client = makeMockClient();
 
     const result = await discoverLeads({
       icpDescription: 'SaaS founders',
       _webSearch: vi.fn().mockResolvedValue([lead]),
       _client: client,
+      _existingUrls: new Set(['http://linkedin.com/in/jane-doe']),
     });
 
     expect(result.skipped).toHaveLength(1);
@@ -286,41 +278,104 @@ describe('Scenario: Skip duplicate leads already in GojiBerry', () => {
   it('logs skip message with lead name', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const lead = makeLead({ firstName: 'Jane', lastName: 'Doe', profileUrl: 'https://linkedin.com/in/jane-doe' });
-
-    const existingLead: Lead = { id: 'x', firstName: 'Jane', lastName: 'Doe', profileUrl: 'https://linkedin.com/in/jane-doe' };
-
-    const client = makeMockClient({
-      searchLeads: vi.fn().mockResolvedValue(paginatedWith([existingLead])),
-    });
+    const client = makeMockClient();
 
     await discoverLeads({
       icpDescription: 'SaaS founders',
       _webSearch: vi.fn().mockResolvedValue([lead]),
       _client: client,
+      _existingUrls: new Set(['http://linkedin.com/in/jane-doe']),
     });
 
     expect(logSpy).toHaveBeenCalledWith('Skipped: Jane Doe — already in GojiBerry');
   });
 
+  it('deduplicates when stored URL has www and scanned URL does not', async () => {
+    // Production case: Suzanne Aranda existed with "https://www.linkedin.com/in/..."
+    // and was re-discovered as "https://linkedin.com/in/..." — strict === missed it.
+    const scannedLead = makeLead({
+      firstName: 'Suzanne',
+      lastName: 'Aranda',
+      profileUrl: 'https://linkedin.com/in/suzanne-aranda-329598200',
+    });
+    // Master contains the URL with different format (www, trailing slash, https)
+    const storedUrl = 'https://www.linkedin.com/in/suzanne-aranda-329598200/';
+    const client = makeMockClient();
+
+    const result = await discoverLeads({
+      icpDescription: 'trades',
+      _webSearch: vi.fn().mockResolvedValue([scannedLead]),
+      _client: client,
+      _existingUrls: new Set([normalize(storedUrl)]),
+    });
+
+    expect(result.skipped).toHaveLength(1);
+    expect(result.created).toHaveLength(0);
+    expect(client.createLead).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates across protocol + trailing-slash + query-string variations', async () => {
+    const scannedLead = makeLead({
+      firstName: 'Shane',
+      lastName: 'Sawyer',
+      profileUrl: 'HTTPS://WWW.LinkedIn.com/in/shane-sawyer-b08169261/?trk=source',
+    });
+    const client = makeMockClient();
+
+    const result = await discoverLeads({
+      icpDescription: 'trades',
+      _webSearch: vi.fn().mockResolvedValue([scannedLead]),
+      _client: client,
+      _existingUrls: new Set(['http://linkedin.com/in/shane-sawyer-b08169261']),
+    });
+
+    expect(result.skipped).toHaveLength(1);
+    expect(client.createLead).not.toHaveBeenCalled();
+  });
+
+  it('does NOT call searchLeads for dedup (master is source of truth)', async () => {
+    const scannedLead = makeLead({ profileUrl: 'https://linkedin.com/in/new-person' });
+    const client = makeMockClient();
+
+    await discoverLeads({
+      icpDescription: 'trades',
+      _webSearch: vi.fn().mockResolvedValue([scannedLead]),
+      _client: client,
+      _existingUrls: new Set(),
+    });
+
+    expect(client.searchLeads).not.toHaveBeenCalled();
+  });
+
+  it('dedupes duplicate URLs within a single scan', async () => {
+    // Two web-search results pointing at the same profile — create only once.
+    const dup1 = makeLead({ firstName: 'A', profileUrl: 'https://linkedin.com/in/same-person' });
+    const dup2 = makeLead({ firstName: 'B', profileUrl: 'https://www.linkedin.com/in/same-person/' });
+    const client = makeMockClient();
+
+    const result = await discoverLeads({
+      icpDescription: 'trades',
+      _webSearch: vi.fn().mockResolvedValue([dup1, dup2]),
+      _client: client,
+      _existingUrls: new Set(),
+    });
+
+    expect(result.created).toHaveLength(1);
+    expect(result.skipped).toHaveLength(1);
+    expect(client.createLead).toHaveBeenCalledTimes(1);
+  });
+
   it('duplicate is not counted toward the scan limit', async () => {
     const dup = makeLead({ profileUrl: 'https://linkedin.com/in/dup' });
     const newLeads = makeLeads(3);
-
-    const existingLead: Lead = { id: 'x', firstName: dup.firstName, lastName: dup.lastName, profileUrl: dup.profileUrl };
-
-    const client = makeMockClient({
-      searchLeads: vi.fn().mockImplementation(async (filters) => {
-        const search = (filters as { search?: string })?.search ?? '';
-        if (search.includes('dup')) return paginatedWith([existingLead]);
-        return emptyPaginated();
-      }),
-    });
+    const client = makeMockClient();
 
     const result = await discoverLeads({
       icpDescription: 'SaaS founders',
       limit: 4,
       _webSearch: vi.fn().mockResolvedValue([dup, ...newLeads]),
       _client: client,
+      _existingUrls: new Set(['http://linkedin.com/in/dup']),
     });
 
     // dup is skipped; 3 new leads created; limitExceeded = 0 (4 processed, 1 skipped + 3 created)
@@ -617,7 +672,7 @@ describe('Scenario: Handle authentication failure', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const client = makeMockClient({
-      searchLeads: vi.fn().mockRejectedValue(new AuthError()),
+      createLead: vi.fn().mockRejectedValue(new AuthError()),
     });
 
     await expect(
@@ -634,7 +689,7 @@ describe('Scenario: Handle authentication failure', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const client = makeMockClient({
-      searchLeads: vi.fn().mockRejectedValue(new AuthError()),
+      createLead: vi.fn().mockRejectedValue(new AuthError()),
     });
 
     await expect(
@@ -650,23 +705,24 @@ describe('Scenario: Handle authentication failure', () => {
     );
   });
 
-  it('does not create any leads before throwing AuthError', async () => {
+  it('aborts the scan loop on AuthError (does not attempt subsequent leads)', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const client = makeMockClient({
-      searchLeads: vi.fn().mockRejectedValue(new AuthError()),
+      createLead: vi.fn().mockRejectedValue(new AuthError()),
     });
 
     await expect(
       discoverLeads({
         icpDescription: 'SaaS founders',
-        _webSearch: vi.fn().mockResolvedValue([makeLead()]),
+        _webSearch: vi.fn().mockResolvedValue(makeLeads(3)),
         _client: client,
       }),
     ).rejects.toThrow(AuthError);
 
-    expect(client.createLead).not.toHaveBeenCalled();
+    // The first lead triggers AuthError; the other 2 must not be attempted.
+    expect(client.createLead).toHaveBeenCalledTimes(1);
   });
 });
 

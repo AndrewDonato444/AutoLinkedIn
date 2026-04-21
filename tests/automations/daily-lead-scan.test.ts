@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+
+// Stub rebuildMaster globally for this test file — none of the tests should
+// hit the real GojiBerry API. Individual tests that want to verify rebuild
+// behavior inject _rebuildMaster explicitly and assert on that mock.
+vi.mock('../../src/contacts/rebuild-master.js', () => ({
+  rebuildMaster: vi.fn().mockResolvedValue({ added: 0, updated: 0, unchanged: 0 }),
+}));
+
 import { runDailyLeadScan } from '../../src/automations/daily-lead-scan.js';
 import { AuthError, ConfigError } from '../../src/api/errors.js';
 import type { DiscoveryResult, EnrichmentResult, MessageGenerationResult } from '../../src/automations/types.js';
@@ -796,5 +804,110 @@ describe('Default env config', () => {
 
     // All above 60 threshold → generate should be called
     expect(mockGenerate).toHaveBeenCalled();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Scenario: Refresh master before discovery (dedup accuracy)
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('Scenario: Refresh master before discovery', () => {
+  beforeEach(() => {
+    process.env.ICP_DESCRIPTION = ICP;
+  });
+
+  afterEach(() => {
+    delete process.env.ICP_DESCRIPTION;
+  });
+
+  it('calls rebuildMaster before discoverLeads', async () => {
+    const callOrder: string[] = [];
+    const mockRebuild = vi.fn().mockImplementation(async () => {
+      callOrder.push('rebuild');
+      return { added: 0, updated: 0, unchanged: 0 };
+    });
+    const mockDiscover = vi.fn().mockImplementation(async () => {
+      callOrder.push('discover');
+      return discoveryResult();
+    });
+
+    await runDailyLeadScan({
+      _rebuildMaster: mockRebuild,
+      _discoverLeads: mockDiscover,
+      _scanLogDir: makeTempDir(),
+    });
+
+    expect(callOrder).toEqual(['rebuild', 'discover']);
+  });
+
+  it('passes masterFilePath to discoverLeads so it dedups against the same file', async () => {
+    const mockRebuild = vi.fn().mockResolvedValue({ added: 0, updated: 0, unchanged: 0 });
+    const mockDiscover = vi.fn().mockResolvedValue(discoveryResult());
+    const customMaster = '/tmp/custom-master.jsonl';
+
+    await runDailyLeadScan({
+      _rebuildMaster: mockRebuild,
+      _discoverLeads: mockDiscover,
+      _masterFilePath: customMaster,
+      _scanLogDir: makeTempDir(),
+    });
+
+    expect(mockDiscover).toHaveBeenCalledWith(
+      expect.objectContaining({ masterFilePath: customMaster }),
+    );
+    expect(mockRebuild).toHaveBeenCalledWith(
+      expect.objectContaining({ masterFilePath: customMaster }),
+    );
+  });
+
+  it('passes the resolved scanLogDir (including test overrides) to rebuildMaster', async () => {
+    const mockRebuild = vi.fn().mockResolvedValue({ added: 0, updated: 0, unchanged: 0 });
+    const mockDiscover = vi.fn().mockResolvedValue(discoveryResult());
+    const tmpScanDir = makeTempDir();
+
+    await runDailyLeadScan({
+      _rebuildMaster: mockRebuild,
+      _discoverLeads: mockDiscover,
+      _scanLogDir: tmpScanDir,
+    });
+
+    // Must honor _scanLogDir — if rebuildMaster uses the default instead of the
+    // test-provided path, it would read from the real data/scan-logs/ in CI.
+    expect(mockRebuild).toHaveBeenCalledWith(
+      expect.objectContaining({ scanLogsDir: tmpScanDir }),
+    );
+  });
+
+  it('aborts with AUTH_ABORT message when rebuildMaster throws AuthError', async () => {
+    const mockRebuild = vi.fn().mockRejectedValue(new AuthError());
+    const mockDiscover = vi.fn();
+
+    const result = await runDailyLeadScan({
+      _rebuildMaster: mockRebuild,
+      _discoverLeads: mockDiscover,
+      _scanLogDir: makeTempDir(),
+    });
+
+    expect(result.nextAction).toMatch(/API authentication failed/i);
+    expect(mockDiscover).not.toHaveBeenCalled();
+  });
+
+  it('continues scan when rebuildMaster throws a non-auth error (warns, proceeds)', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mockRebuild = vi.fn().mockRejectedValue(new Error('network timeout'));
+    const mockDiscover = vi.fn().mockResolvedValue(discoveryResult());
+
+    await runDailyLeadScan({
+      _rebuildMaster: mockRebuild,
+      _discoverLeads: mockDiscover,
+      _scanLogDir: makeTempDir(),
+    });
+
+    // Discovery still runs; warning is emitted.
+    expect(mockDiscover).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringMatching(/master rebuild failed.+continuing.+network timeout/i),
+    );
+    warnSpy.mockRestore();
   });
 });

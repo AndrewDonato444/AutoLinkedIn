@@ -36,14 +36,29 @@ This is the "set it and forget it" automation. The founder defines their ICP onc
 
 ## Feature: Daily Lead Scan Automation
 
-### Scenario: Run the full pipeline — discover, enrich, generate messages
+### Scenario: Run the full pipeline — refresh master, discover, enrich, generate messages
 Given the founder has configured `ICP_DESCRIPTION` and `GOJIBERRY_API_KEY`
 And `DAILY_LEAD_SCAN_LIMIT` is set to 10
 When the daily lead scan runs
-Then it calls `discoverLeads()` with the ICP description and lead limit
+Then it first calls `rebuildMaster()` to refresh `data/contacts.jsonl` from GojiBerry (so dedup reflects the latest state)
+And it calls `discoverLeads()` with the ICP description, lead limit, and the same `masterFilePath` used for the rebuild
 And it calls `enrichLeads()` on the newly created leads
 And it calls `generateMessages()` for leads scoring above `MIN_INTENT_SCORE`
 And it outputs a summary: "{n} leads found, {n} enriched, {n} messages generated"
+
+### Scenario: Master rebuild fails with AuthError — abort the scan
+Given `rebuildMaster()` throws `AuthError` (e.g. GOJIBERRY_API_KEY is invalid)
+When the daily scan runs
+Then it aborts immediately with the `AUTH_ABORT_MSG`
+And `discoverLeads()`, `enrichLeads()`, `generateMessages()` are all skipped
+And no scan log is written with partial results
+
+### Scenario: Master rebuild fails with a non-auth error — warn and continue
+Given `rebuildMaster()` throws a non-auth error (e.g. a transient network timeout)
+When the daily scan runs
+Then it logs a warning ("Master rebuild failed (continuing with existing master): …")
+And discovery continues with whatever master was on disk from a prior run
+Because running with slightly stale dedup data is preferable to skipping the scan entirely
 
 ### Scenario: Lead limit caps discovery
 Given `DAILY_LEAD_SCAN_LIMIT` is set to 5

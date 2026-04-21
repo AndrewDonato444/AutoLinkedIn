@@ -3,6 +3,8 @@ import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { GojiBerryClient } from '../api/gojiberry-client.js';
 import { AuthError, ConfigError } from '../api/errors.js';
+import { normalizeLinkedInUrl } from '../utils/linkedin-url.js';
+import { readMaster } from '../contacts/master-store.js';
 import type { DiscoveredLead, DiscoveryResult } from './types.js';
 
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
@@ -19,10 +21,22 @@ type LeadClient = Pick<GojiBerryClient, 'createLead' | 'searchLeads'>;
 export interface DiscoverLeadsOptions {
   icpDescription?: string;
   limit?: number;
+  /**
+   * Path to the master contact store for dedup. Defaults to `data/contacts.jsonl`.
+   * The master store is the source of truth for dedup — callers should invoke
+   * `rebuildMaster()` beforehand to ensure the master reflects the latest
+   * GojiBerry state before a scan.
+   */
+  masterFilePath?: string;
   /** Injectable for testing — bypasses real Anthropic web search */
   _webSearch?: WebSearchFn;
   /** Injectable for testing — bypasses real GojiBerryClient construction */
   _client?: LeadClient;
+  /**
+   * Injectable for testing — pre-built set of normalized URLs already in the
+   * master. If provided, `masterFilePath` is ignored.
+   */
+  _existingUrls?: Set<string>;
 }
 
 export async function defaultWebSearch(icpDescription: string): Promise<DiscoveredLead[]> {
@@ -119,6 +133,24 @@ function outputSummary(result: DiscoveryResult, limit: number): void {
   }
 }
 
+/**
+ * Build a Set of normalized LinkedIn URLs already present in the master store.
+ * Called at the start of each scan to dedupe against the authoritative source.
+ *
+ * Falls back to an empty set if the master file doesn't exist — the first
+ * scan in a fresh repo would create everything.
+ */
+async function loadSeenUrlsFromMaster(masterFilePath?: string): Promise<Set<string>> {
+  const filePath = masterFilePath ?? path.join(process.cwd(), 'data', 'contacts.jsonl');
+  const contacts = await readMaster(filePath);
+  const urls = new Set<string>();
+  for (const c of contacts) {
+    const norm = normalizeLinkedInUrl(c.profileUrl);
+    if (norm) urls.add(norm);
+  }
+  return urls;
+}
+
 export async function discoverLeads(options: DiscoverLeadsOptions = {}): Promise<DiscoveryResult> {
   const icpDescription = options.icpDescription ?? process.env.ICP_DESCRIPTION;
 
@@ -135,6 +167,14 @@ export async function discoverLeads(options: DiscoverLeadsOptions = {}): Promise
   const webSearch: WebSearchFn = options._webSearch ?? defaultWebSearch;
 
   const result: DiscoveryResult = { created: [], skipped: [], failed: [], limitExceeded: 0 };
+
+  // Build the dedup set from the master contact store.
+  // Master is the source of truth — we skip any lead whose normalized LinkedIn
+  // URL already appears there. The set also catches duplicates within a single
+  // scan (two web-search results pointing at the same profile).
+  const seenUrls: Set<string> = options._existingUrls
+    ? new Set(options._existingUrls)
+    : await loadSeenUrlsFromMaster(options.masterFilePath);
 
   // Step 1: Search web for leads
   const allLeads = await webSearch(icpDescription);
@@ -153,11 +193,11 @@ export async function discoverLeads(options: DiscoverLeadsOptions = {}): Promise
   // Step 3: Process each lead
   for (const lead of leadsToProcess) {
     try {
-      // Duplicate check
-      const existing = await client.searchLeads({ search: lead.profileUrl });
-      const isDuplicate = existing.leads.some((l) => l.profileUrl === lead.profileUrl);
+      // Duplicate check — O(1) lookup against master. Handles URL variations
+      // (https↔http, www↔no-www, trailing-slash, query-string) via normalization.
+      const normScanned = normalizeLinkedInUrl(lead.profileUrl);
 
-      if (isDuplicate) {
+      if (normScanned && seenUrls.has(normScanned)) {
         console.log(`Skipped: ${lead.firstName} ${lead.lastName} — already in GojiBerry`);
         result.skipped.push(lead);
         continue;
@@ -166,6 +206,9 @@ export async function discoverLeads(options: DiscoverLeadsOptions = {}): Promise
       // Create lead
       await client.createLead(buildCreateLeadInput(lead));
 
+      // Track within this run so two web-search results pointing at the same
+      // profile don't both get created.
+      if (normScanned) seenUrls.add(normScanned);
       result.created.push(lead);
     } catch (err: unknown) {
       if (err instanceof AuthError) {
